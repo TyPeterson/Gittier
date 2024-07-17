@@ -12,15 +12,34 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var forceAdd bool
+
 func stageAndCommitFile(path string, description string) error {
+	// Check if the file is ignored
+	isIgnored, err := isFileIgnored(path)
+	if err != nil {
+		return fmt.Errorf("failed to check if file is ignored: %w", err)
+	}
+
+	if isIgnored && !forceAdd {
+		fmt.Printf("Skipping ignored file: %s\n", path)
+		return nil
+	}
+
 	// Step 1: Add a temporary line
-	err := addTemporaryLine(path)
+	err = addTemporaryLine(path)
 	if err != nil {
 		return fmt.Errorf("failed to add temporary line: %w", err)
 	}
 
 	// Commit the temporary change
-	_, err = executeGitCommand("add", path)
+	gitAddArgs := []string{"add"}
+	if forceAdd {
+		gitAddArgs = append(gitAddArgs, "-f")
+	}
+	gitAddArgs = append(gitAddArgs, path)
+
+	_, err = executeGitCommand(gitAddArgs...)
 	if err != nil {
 		return fmt.Errorf("failed to stage temporary change: %w", err)
 	}
@@ -37,7 +56,7 @@ func stageAndCommitFile(path string, description string) error {
 	}
 
 	// Commit the removal with the actual description
-	_, err = executeGitCommand("add", path)
+	_, err = executeGitCommand(gitAddArgs...)
 	if err != nil {
 		return fmt.Errorf("failed to stage file: %w", err)
 	}
@@ -48,6 +67,21 @@ func stageAndCommitFile(path string, description string) error {
 	}
 
 	return nil
+}
+
+func isFileIgnored(path string) (bool, error) {
+	_, err := executeGitCommand("check-ignore", "-q", path)
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			// exit code 1 means the file is not ignored
+			if exitError.ExitCode() == 1 {
+				return false, nil
+			}
+		}
+		return false, err
+	}
+	// If we get here, the file is ignored
+	return true, nil
 }
 
 func addTemporaryLine(path string) error {
@@ -250,6 +284,11 @@ func main() {
 		printDFS(nodes)
 
 	case "commit-all":
+		forceAdd = false
+		if len(os.Args) > 2 && os.Args[2] == "--force" {
+			forceAdd = true
+		}
+
 		nodes, err := loadYAML("filetree.yaml")
 		if err != nil {
 			fmt.Printf("Error loading filetree: %v\n", err)
@@ -262,7 +301,7 @@ func main() {
 			return
 		}
 
-		fmt.Println("All files have been committed with their descriptions")
+		fmt.Println("All files have been processed")
 	default:
 		fmt.Println("Invalid command")
 	}
