@@ -6,34 +6,25 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
 	"sort"
 	"strings"
 	"time"
 
 	gitignore "github.com/sabhiram/go-gitignore"
-	"golang.org/x/sys/unix"
+	// "golang.org/x/sys/unix"
 	"gopkg.in/yaml.v2"
 )
 
 type FileNode struct {
-	ID          string `yaml:"id"`
 	Path        string `yaml:"path"`
 	Description string `yaml:"description"`
 	IsDir       bool   `yaml:"is_dir"`
 }
 
-func generateID(path string) (string, error) {
-	var stat unix.Stat_t
-	err := unix.Stat(path, &stat)
-	if err != nil {
-		return "", err
-	}
-	// Combine device ID and inode number for a unique identifier
-	return fmt.Sprintf("%d-%d", stat.Dev, stat.Ino), nil
-}
-
 func scanDirectory(root string) ([]FileNode, error) {
 	var nodes []FileNode
+	visited := make(map[string]bool)
 
 	ignoreFilePath := filepath.Join(root, ".gitignore")
 	var ignore *gitignore.GitIgnore
@@ -46,28 +37,42 @@ func scanDirectory(root string) ([]FileNode, error) {
 
 	var dfs func(path string) error
 	dfs = func(path string) error {
+		relPath, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+
+		// Skip if already visited
+		if visited[relPath] {
+			return nil
+		}
+
 		entries, err := os.ReadDir(path)
 		if err != nil {
 			return err
 		}
 
+		// Sort entries to ensure consistent ordering
 		sort.Slice(entries, func(i, j int) bool {
 			return entries[i].Name() < entries[j].Name()
 		})
 
+		var dirChildren []FileNode
+
 		for _, entry := range entries {
 			fullPath := filepath.Join(path, entry.Name())
-			relPath, err := filepath.Rel(root, fullPath)
+			childRelPath, err := filepath.Rel(root, fullPath)
 			if err != nil {
 				return err
 			}
 
-			cleanPath := filepath.Clean(relPath)
-			if cleanPath == ".git" || (cleanPath != ".gitignore" && strings.HasPrefix(cleanPath, ".git")) {
+			// Skip .git directory
+			if childRelPath == ".git" || strings.HasPrefix(childRelPath, ".git"+string(os.PathSeparator)) {
 				continue
 			}
 
-			if ignore != nil && ignore.MatchesPath(relPath) {
+			// Check if file is ignored by .gitignore
+			if ignore != nil && ignore.MatchesPath(childRelPath) {
 				continue
 			}
 
@@ -76,25 +81,34 @@ func scanDirectory(root string) ([]FileNode, error) {
 				return err
 			}
 
-			id, err := generateID(fullPath)
-			if err != nil {
-				return fmt.Errorf("error generating ID for %s: %w", fullPath, err)
-			}
-
-			node := FileNode{
-				ID:          id,
-				Path:        relPath,
-				Description: "No description added",
-				IsDir:       info.IsDir(),
-			}
-			nodes = append(nodes, node)
-
 			if info.IsDir() {
 				if err := dfs(fullPath); err != nil {
 					return err
 				}
+			} else {
+				fileNode := FileNode{
+					Path:        childRelPath,
+					Description: "No description added",
+					IsDir:       false,
+				}
+				dirChildren = append(dirChildren, fileNode)
 			}
 		}
+
+		// Add children first
+		nodes = append(nodes, dirChildren...)
+
+		// Add the directory itself if it's not the root
+		if relPath != "." {
+			dirNode := FileNode{
+				Path:        relPath,
+				Description: "No description added",
+				IsDir:       true,
+			}
+			nodes = append(nodes, dirNode)
+		}
+
+		visited[relPath] = true
 		return nil
 	}
 
@@ -160,21 +174,60 @@ func loadYAML(filename string) ([]FileNode, error) {
 	return nodes, nil
 }
 
-func syncFileTree(oldNodes []FileNode, newNodes []FileNode) []FileNode {
+func getGitRenames() (map[string]string, error) {
+	cmd := exec.Command("git", "diff", "--name-status", "--cached")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("error running git diff: %w", err)
+	}
+
+	renames := make(map[string]string)
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		parts := strings.Split(line, "\t")
+		if len(parts) == 3 && strings.HasPrefix(parts[0], "R") {
+			oldPath, newPath := parts[1], parts[2]
+			renames[newPath] = oldPath
+		}
+	}
+
+	// print out the renames that were detected (if any)
+	if len(renames) > 0 {
+		fmt.Println("Detected renames:")
+		for newPath, oldPath := range renames {
+			fmt.Printf("  %s -> %s\n", oldPath, newPath)
+		}
+	} else {
+		fmt.Println("No renames detected")
+	}
+
+	return renames, nil
+}
+
+func syncFileTree(oldNodes []FileNode, newNodes []FileNode) ([]FileNode, error) {
 	oldMap := make(map[string]FileNode)
 	for _, node := range oldNodes {
-		oldMap[node.ID] = node
+		oldMap[node.Path] = node
+	}
+
+	renames, err := getGitRenames()
+	if err != nil {
+		return nil, err
 	}
 
 	var syncedNodes []FileNode
 	for _, newNode := range newNodes {
-		if oldNode, exists := oldMap[newNode.ID]; exists {
+		if oldPath, isRenamed := renames[newNode.Path]; isRenamed {
+			if oldNode, exists := oldMap[oldPath]; exists {
+				newNode.Description = oldNode.Description
+			}
+		} else if oldNode, exists := oldMap[newNode.Path]; exists {
 			newNode.Description = oldNode.Description
 		}
 		syncedNodes = append(syncedNodes, newNode)
 	}
 
-	return syncedNodes
+	return syncedNodes, nil
 }
 
 func commitFile(filePath string, description string) error {
@@ -316,13 +369,24 @@ func main() {
 			return
 		}
 
+		// Stage all changes
+		stageCmd := exec.Command("git", "add", "-A")
+		if err := stageCmd.Run(); err != nil {
+			fmt.Printf("Error staging changes: %v\n", err)
+			return
+		}
+
 		newNodes, err := scanDirectory(root)
 		if err != nil {
 			fmt.Printf("Error scanning directory: %v\n", err)
 			return
 		}
 
-		syncedNodes := syncFileTree(oldNodes, newNodes)
+		syncedNodes, err := syncFileTree(oldNodes, newNodes)
+		if err != nil {
+			fmt.Printf("Error syncing filetree: %v\n", err)
+			return
+		}
 
 		err = saveYAML(syncedNodes, "filetree.yaml")
 		if err != nil {
