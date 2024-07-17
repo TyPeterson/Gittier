@@ -3,23 +3,56 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
+
 	"time"
+
+	"golang.org/x/sys/unix"
 
 	gitignore "github.com/sabhiram/go-gitignore"
 	"gopkg.in/yaml.v2"
 )
-
 
 func modifyFileMetadata(path string) error {
 	// get current time
 	currentTime := time.Now().Format(time.RFC3339)
 
 	// set or update the custom attribute
+	err := unix.Setxattr(path, "user.last_modified_by_tool", []byte(currentTime), 0)
+	if err != nil {
+		return fmt.Errorf("error setting xattr: %w", err)
+	}
+
+	return nil
 }
 
+func stageFileForGit(path string) error {
+	// First, modify the file metadata
+	err := modifyFileMetadata(path)
+	if err != nil {
+		return err
+	}
+
+	// Then, stage the file using Git
+	_, err = executeGitCommand("add", path)
+	if err != nil {
+		return fmt.Errorf("failed to stage file: %w", err)
+	}
+
+	return nil
+}
+
+func executeGitCommand(args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("git command failed: %s, %w", string(output), err)
+	}
+	return string(output), nil
+}
 
 // ----------------- FileNode -----------------
 type FileNode struct {
@@ -171,6 +204,18 @@ func main() {
 		fmt.Println("Depth-First Search Traversal:")
 		printDFS(nodes)
 
+	case "stage":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: go run main.go stage <path>")
+			return
+		}
+		filePath := os.Args[2]
+		err := stageFileForGit(filePath)
+		if err != nil {
+			fmt.Printf("Error staging file: %v\n", err)
+			return
+		}
+		fmt.Printf("File %s has successfully been staged for commit\n", filePath)
 	default:
 		fmt.Println("Invalid command")
 	}
