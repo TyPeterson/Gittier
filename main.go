@@ -187,6 +187,62 @@ func commitFile(filePath string, nodes []FileNode) error {
 	return nil
 }
 
+func commitDirectory(dirPath string, nodes []FileNode) error {
+	// Find the directory in our nodes
+	var dirNode FileNode
+	for _, node := range nodes {
+		if node.Path == dirPath && node.IsDir {
+			dirNode = node
+			break
+		}
+	}
+	if dirNode.Path == "" {
+		return fmt.Errorf("directory not found in YAML: %s", dirPath)
+	}
+
+	// Create a temporary file in the directory
+	tempFileName := fmt.Sprintf("temp_file_%d.txt", time.Now().UnixNano())
+	tempFilePath := filepath.Join(dirPath, tempFileName)
+	tempFile, err := os.Create(tempFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tempFile.WriteString("Temporary file for commit")
+	tempFile.Close()
+
+	// Git add the temporary file
+	cmd := exec.Command("git", "add", tempFilePath)
+	if err := cmd.Run(); err != nil {
+		os.Remove(tempFilePath) // Clean up the temp file
+		return fmt.Errorf("git add (temp file) failed: %w", err)
+	}
+
+	// Git commit the temporary file
+	cmd = exec.Command("git", "commit", "-m", fmt.Sprintf("Add temporary file in %s", dirPath))
+	if err := cmd.Run(); err != nil {
+		os.Remove(tempFilePath) // Clean up the temp file
+		return fmt.Errorf("git commit (temp file) failed: %w", err)
+	}
+
+	// Remove the temporary file
+	if err := os.Remove(tempFilePath); err != nil {
+		return fmt.Errorf("failed to remove temp file: %w", err)
+	}
+
+	// Git add the removal of the temporary file
+	cmd = exec.Command("git", "add", tempFilePath)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git add (remove temp file) failed: %w", err)
+	}
+
+	// Git commit with the directory description
+	cmd = exec.Command("git", "commit", "-m", dirNode.Description)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git commit (final) failed: %w", err)
+	}
+
+	return nil
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -221,25 +277,44 @@ func main() {
 	case "dfs":
 
 	case "commit":
-			if len(os.Args) < 3 {
-				fmt.Println("Usage: go run main.go commit <filepath>")
-				return
-			}
-			filePath := os.Args[2]
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: go run main.go commit <path>")
+			return
+		}
+		path := os.Args[2]
 
-			nodes, err := loadYAML("filetree.yaml")
-			if err != nil {
-				fmt.Printf("Error loading filetree: %v\n", err)
-				return
-			}
+		nodes, err := loadYAML("filetree.yaml")
+		if err != nil {
+			fmt.Printf("Error loading filetree: %v\n", err)
+			return
+		}
 
-			err = commitFile(filePath, nodes)
-			if err != nil {
-				fmt.Printf("Error committing file: %v\n", err)
-				return
+		// Find the node for the given path
+		var targetNode FileNode
+		for _, node := range nodes {
+			if node.Path == path {
+				targetNode = node
+				break
 			}
+		}
 
-			fmt.Printf("Successfully committed changes for %s\n", filePath)
+		if targetNode.Path == "" {
+			fmt.Printf("Error: Path not found in filetree: %s\n", path)
+			return
+		}
+
+		if targetNode.IsDir {
+			err = commitDirectory(path, nodes)
+		} else {
+			err = commitFile(path, nodes)
+		}
+
+		if err != nil {
+			fmt.Printf("Error committing: %v\n", err)
+			return
+		}
+
+		fmt.Printf("Successfully committed changes for %s\n", path)
 
 	default:
 		fmt.Println("Invalid command")
