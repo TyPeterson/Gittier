@@ -160,6 +160,7 @@ func syncFileTree(oldNodes []FileNode, newNodes []FileNode) []FileNode {
 	var syncedNodes []FileNode
 	for _, newNode := range newNodes {
 		if oldNode, exists := oldMap[newNode.ID]; exists {
+			// Preserve the description, but update the path
 			newNode.Description = oldNode.Description
 		}
 		syncedNodes = append(syncedNodes, newNode)
@@ -294,13 +295,7 @@ func main() {
 
 		fmt.Println("Filetree initialized")
 
-	case "commit":
-		if len(os.Args) < 3 {
-			fmt.Println("Usage: go run main.go commit <path>")
-			return
-		}
-		path := os.Args[2]
-
+	case "commit", "commit-all":
 		oldNodes, err := loadYAML("filetree.yaml")
 		if err != nil {
 			fmt.Printf("Error loading filetree: %v\n", err)
@@ -327,61 +322,42 @@ func main() {
 			return
 		}
 
-		var targetNode FileNode
-		for _, node := range syncedNodes {
-			if node.Path == path {
-				targetNode = node
-				break
+		if command == "commit" {
+			if len(os.Args) < 3 {
+				fmt.Println("Usage: go run main.go commit <path>")
+				return
 			}
+			path := os.Args[2]
+
+			var targetNode FileNode
+			for _, node := range syncedNodes {
+				if node.Path == path {
+					targetNode = node
+					break
+				}
+			}
+
+			if targetNode.Path == "" {
+				fmt.Printf("Error: Path not found in filetree: %s\n", path)
+				return
+			}
+
+			err = commitNode(targetNode)
+			if err != nil {
+				fmt.Printf("Error committing: %v\n", err)
+				return
+			}
+
+			fmt.Printf("Successfully committed changes for %s\n", path)
+		} else {
+			err = commitAll(syncedNodes)
+			if err != nil {
+				fmt.Printf("Error in commit-all: %v\n", err)
+				return
+			}
+
+			fmt.Println("Successfully committed all changes")
 		}
-
-		if targetNode.Path == "" {
-			fmt.Printf("Error: Path not found in filetree: %s\n", path)
-			return
-		}
-
-		err = commitNode(targetNode)
-		if err != nil {
-			fmt.Printf("Error committing: %v\n", err)
-			return
-		}
-
-		fmt.Printf("Successfully committed changes for %s\n", path)
-
-	case "commit-all":
-		oldNodes, err := loadYAML("filetree.yaml")
-		if err != nil {
-			fmt.Printf("Error loading filetree: %v\n", err)
-			return
-		}
-
-		root, err := os.Getwd()
-		if err != nil {
-			fmt.Printf("Error getting current directory: %v\n", err)
-			return
-		}
-
-		newNodes, err := scanDirectory(root)
-		if err != nil {
-			fmt.Printf("Error scanning directory: %v\n", err)
-			return
-		}
-
-		syncedNodes := syncFileTree(oldNodes, newNodes)
-
-		err = saveYAML(syncedNodes, "filetree.yaml")
-		if err != nil {
-			fmt.Printf("Error saving updated filetree: %v\n", err)
-			return
-		}
-
-		err = commitAll(syncedNodes)
-		if err != nil {
-			fmt.Printf("Error in commit-all: %v\n", err)
-			return
-		}
-
-		fmt.Println("Successfully committed all changes")
 
 	default:
 		fmt.Println("Invalid command")
