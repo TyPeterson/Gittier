@@ -10,28 +10,34 @@ import (
 
 	"time"
 
-	"golang.org/x/sys/unix"
+	// "golang.org/x/sys/unix"
 
 	gitignore "github.com/sabhiram/go-gitignore"
 	"gopkg.in/yaml.v2"
 )
 
-func modifyFileMetadata(path string) error {
-	// get current time
-	currentTime := time.Now().Format(time.RFC3339)
-
-	// set or update the custom attribute
-	err := unix.Setxattr(path, "user.last_modified_by_tool", []byte(currentTime), 0)
+func modifyFileTimestamp(path string) error {
+	// Get current file info
+	_, err := os.Stat(path)
 	if err != nil {
-		return fmt.Errorf("error setting xattr: %w", err)
+		return fmt.Errorf("failed to get file info: %w", err)
+	}
+
+	// Get current time
+	now := time.Now().Local()
+
+	// Change both the access time and modification time
+	err = os.Chtimes(path, now, now)
+	if err != nil {
+		return fmt.Errorf("failed to change file timestamps: %w", err)
 	}
 
 	return nil
 }
 
 func stageFileForGit(path string) error {
-	// First, modify the file metadata
-	err := modifyFileMetadata(path)
+	// First, modify the file timestamp
+	err := modifyFileTimestamp(path)
 	if err != nil {
 		return err
 	}
@@ -206,7 +212,7 @@ func main() {
 
 	case "stage":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: go run main.go stage <path>")
+			fmt.Println("Usage: go run main.go stage <file_path>")
 			return
 		}
 		filePath := os.Args[2]
@@ -215,7 +221,7 @@ func main() {
 			fmt.Printf("Error staging file: %v\n", err)
 			return
 		}
-		fmt.Printf("File %s has successfully been staged for commit\n", filePath)
+		fmt.Printf("File %s has been staged for commit\n", filePath)
 	default:
 		fmt.Println("Invalid command")
 	}
