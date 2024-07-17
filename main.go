@@ -2,8 +2,6 @@ package main
 
 import (
 	"bufio"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,6 +11,7 @@ import (
 	"time"
 
 	gitignore "github.com/sabhiram/go-gitignore"
+	"golang.org/x/sys/unix"
 	"gopkg.in/yaml.v2"
 )
 
@@ -23,9 +22,14 @@ type FileNode struct {
 	IsDir       bool   `yaml:"is_dir"`
 }
 
-func generateID(path string) string {
-	hash := sha256.Sum256([]byte(path))
-	return hex.EncodeToString(hash[:])
+func generateID(path string) (string, error) {
+	var stat unix.Stat_t
+	err := unix.Stat(path, &stat)
+	if err != nil {
+		return "", err
+	}
+	// Combine device ID and inode number for a unique identifier
+	return fmt.Sprintf("%d-%d", stat.Dev, stat.Ino), nil
 }
 
 func scanDirectory(root string) ([]FileNode, error) {
@@ -72,19 +76,24 @@ func scanDirectory(root string) ([]FileNode, error) {
 				return err
 			}
 
-			if info.IsDir() {
-				if err := dfs(fullPath); err != nil {
-					return err
-				}
+			id, err := generateID(fullPath)
+			if err != nil {
+				return fmt.Errorf("error generating ID for %s: %w", fullPath, err)
 			}
 
 			node := FileNode{
-				ID:          generateID(relPath),
+				ID:          id,
 				Path:        relPath,
 				Description: "No description added",
 				IsDir:       info.IsDir(),
 			}
 			nodes = append(nodes, node)
+
+			if info.IsDir() {
+				if err := dfs(fullPath); err != nil {
+					return err
+				}
+			}
 		}
 		return nil
 	}
@@ -160,7 +169,6 @@ func syncFileTree(oldNodes []FileNode, newNodes []FileNode) []FileNode {
 	var syncedNodes []FileNode
 	for _, newNode := range newNodes {
 		if oldNode, exists := oldMap[newNode.ID]; exists {
-			// Preserve the description, but update the path
 			newNode.Description = oldNode.Description
 		}
 		syncedNodes = append(syncedNodes, newNode)
