@@ -161,17 +161,20 @@ func printDFS(nodes []FileNode) {
 }
 
 func commitFile(filePath string, description string) error {
-	// Add a temporary line to the file
-	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
+	// Read the entire file
+	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read file: %w", err)
 	}
-	tempLine := fmt.Sprintf("Temporary line added at %s\n", time.Now().Format(time.RFC3339))
-	if _, err := f.WriteString(tempLine); err != nil {
-		f.Close()
-		return err
+
+	// Append a temporary line to the file
+	tempLine := fmt.Sprintf("\nTemporary line added at %s\n", time.Now().Format(time.RFC3339))
+	newContent := append(content, []byte(tempLine)...)
+
+	// Write the file with the appended line
+	if err := os.WriteFile(filePath, newContent, 0644); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
 	}
-	f.Close()
 
 	// Git add the file
 	cmd := exec.Command("git", "add", filePath)
@@ -185,15 +188,9 @@ func commitFile(filePath string, description string) error {
 		return fmt.Errorf("git commit (temp) failed: %w", err)
 	}
 
-	// Remove the temporary line
-	input, err := os.ReadFile(filePath)
-	if err != nil {
-		return err
-	}
-	lines := strings.Split(string(input), "\n")
-	output := strings.Join(lines[:len(lines)-2], "\n") // Remove last line and the empty line after it
-	if err = os.WriteFile(filePath, []byte(output), 0644); err != nil {
-		return err
+	// Remove the temporary line by writing the original content back
+	if err = os.WriteFile(filePath, content, 0644); err != nil {
+		return fmt.Errorf("failed to restore original content: %w", err)
 	}
 
 	// Git add the file again
