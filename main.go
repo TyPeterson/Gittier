@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
-
 	"os/exec"
 	"path/filepath"
 	"sort"
@@ -99,7 +99,43 @@ func saveYAML(nodes []FileNode, filename string) error {
 		return err
 	}
 
-	return os.WriteFile(filename, data, 0644)
+	// Write YAML data to file
+	if err := os.WriteFile(filename, data, 0644); err != nil {
+		return err
+	}
+
+	// Add filename to .gitignore if it's not already there
+	gitignorePath := ".gitignore"
+	var lines []string
+
+	// Read existing .gitignore file
+	if file, err := os.Open(gitignorePath); err == nil {
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			lines = append(lines, scanner.Text())
+		}
+	}
+
+	// Check if filename is already in .gitignore
+	found := false
+	for _, line := range lines {
+		if strings.TrimSpace(line) == filename {
+			found = true
+			break
+		}
+	}
+
+	// If filename is not in .gitignore, append it
+	if !found {
+		lines = append(lines, filename)
+		content := strings.Join(lines, "\n")
+		if err := os.WriteFile(gitignorePath, []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to update .gitignore: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func loadYAML(filename string) ([]FileNode, error) {
@@ -124,19 +160,7 @@ func printDFS(nodes []FileNode) {
 	}
 }
 
-func commitFile(filePath string, nodes []FileNode) error {
-	// Find the file in our nodes
-	var fileNode FileNode
-	for _, node := range nodes {
-		if node.Path == filePath {
-			fileNode = node
-			break
-		}
-	}
-	if fileNode.Path == "" {
-		return fmt.Errorf("file not found in YAML: %s", filePath)
-	}
-
+func commitFile(filePath string, description string) error {
 	// Add a temporary line to the file
 	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
@@ -179,7 +203,7 @@ func commitFile(filePath string, nodes []FileNode) error {
 	}
 
 	// Git commit with the description
-	cmd = exec.Command("git", "commit", "-m", fileNode.Description)
+	cmd = exec.Command("git", "commit", "-m", description)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git commit (final) failed: %w", err)
 	}
@@ -187,19 +211,7 @@ func commitFile(filePath string, nodes []FileNode) error {
 	return nil
 }
 
-func commitDirectory(dirPath string, nodes []FileNode) error {
-	// Find the directory in our nodes
-	var dirNode FileNode
-	for _, node := range nodes {
-		if node.Path == dirPath && node.IsDir {
-			dirNode = node
-			break
-		}
-	}
-	if dirNode.Path == "" {
-		return fmt.Errorf("directory not found in YAML: %s", dirPath)
-	}
-
+func commitDirectory(dirPath string, description string) error {
 	// Create a temporary file in the directory
 	tempFileName := fmt.Sprintf("temp_file_%d.txt", time.Now().UnixNano())
 	tempFilePath := filepath.Join(dirPath, tempFileName)
@@ -236,11 +248,28 @@ func commitDirectory(dirPath string, nodes []FileNode) error {
 	}
 
 	// Git commit with the directory description
-	cmd = exec.Command("git", "commit", "-m", dirNode.Description)
+	cmd = exec.Command("git", "commit", "-m", description)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git commit (final) failed: %w", err)
 	}
 
+	return nil
+}
+
+func commitNode(node FileNode) error {
+	if node.IsDir {
+		return commitDirectory(node.Path, node.Description)
+	}
+	return commitFile(node.Path, node.Description)
+}
+
+func commitAll(nodes []FileNode) error {
+	for _, node := range nodes {
+		fmt.Printf("Committing: %s\n", node.Path)
+		if err := commitNode(node); err != nil {
+			return fmt.Errorf("error committing %s: %w", node.Path, err)
+		}
+	}
 	return nil
 }
 
@@ -289,7 +318,6 @@ func main() {
 			return
 		}
 
-		// Find the node for the given path
 		var targetNode FileNode
 		for _, node := range nodes {
 			if node.Path == path {
@@ -303,18 +331,28 @@ func main() {
 			return
 		}
 
-		if targetNode.IsDir {
-			err = commitDirectory(path, nodes)
-		} else {
-			err = commitFile(path, nodes)
-		}
-
+		err = commitNode(targetNode)
 		if err != nil {
 			fmt.Printf("Error committing: %v\n", err)
 			return
 		}
 
 		fmt.Printf("Successfully committed changes for %s\n", path)
+
+	case "commit-all":
+		nodes, err := loadYAML("filetree.yaml")
+		if err != nil {
+			fmt.Printf("Error loading filetree: %v\n", err)
+			return
+		}
+
+		err = commitAll(nodes)
+		if err != nil {
+			fmt.Printf("Error in commit-all: %v\n", err)
+			return
+		}
+
+		fmt.Println("Successfully committed all changes")
 
 	default:
 		fmt.Println("Invalid command")
