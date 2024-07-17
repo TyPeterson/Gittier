@@ -8,47 +8,74 @@ import (
 	"sort"
 	"strings"
 
-	"time"
-
-	// "golang.org/x/sys/unix"
-
 	gitignore "github.com/sabhiram/go-gitignore"
 	"gopkg.in/yaml.v2"
 )
 
-func modifyFileTimestamp(path string) error {
-	// Get current file info
-	_, err := os.Stat(path)
+func stageAndCommitFile(path string, description string) error {
+	// Step 1: Add a temporary line
+	err := addTemporaryLine(path)
 	if err != nil {
-		return fmt.Errorf("failed to get file info: %w", err)
+		return fmt.Errorf("failed to add temporary line: %w", err)
 	}
 
-	// Get current time
-	now := time.Now().Local()
-
-	// Change both the access time and modification time
-	err = os.Chtimes(path, now, now)
+	// Commit the temporary change
+	_, err = executeGitCommand("add", path)
 	if err != nil {
-		return fmt.Errorf("failed to change file timestamps: %w", err)
+		return fmt.Errorf("failed to stage temporary change: %w", err)
 	}
 
-	return nil
-}
-
-func stageFileForGit(path string) error {
-	// First, modify the file timestamp
-	err := modifyFileTimestamp(path)
+	_, err = executeGitCommand("commit", "-m", fmt.Sprintf("%s temp commit", filepath.Base(path)))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to commit temporary change: %w", err)
 	}
 
-	// Then, stage the file using Git
+	// Step 2: Remove the temporary line
+	err = removeTemporaryLine(path)
+	if err != nil {
+		return fmt.Errorf("failed to remove temporary line: %w", err)
+	}
+
+	// Commit the removal with the actual description
 	_, err = executeGitCommand("add", path)
 	if err != nil {
 		return fmt.Errorf("failed to stage file: %w", err)
 	}
 
+	_, err = executeGitCommand("commit", "-m", description)
+	if err != nil {
+		return fmt.Errorf("failed to commit file with description: %w", err)
+	}
+
 	return nil
+}
+
+func addTemporaryLine(path string) error {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString("\n// Temporary line for commit\n")
+	return err
+}
+
+func removeTemporaryLine(path string) error {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	lines := strings.Split(string(content), "\n")
+	if len(lines) < 2 {
+		return nil // File is too short, do nothing
+	}
+
+	// Remove the last two lines (the temporary line and the newline before it)
+	newContent := strings.Join(lines[:len(lines)-2], "\n")
+
+	return os.WriteFile(path, []byte(newContent), 0644)
 }
 
 func executeGitCommand(args ...string) (string, error) {
@@ -58,6 +85,18 @@ func executeGitCommand(args ...string) (string, error) {
 		return "", fmt.Errorf("git command failed: %s, %w", string(output), err)
 	}
 	return string(output), nil
+}
+
+func commitAllFiles(nodes []FileNode) error {
+	for _, node := range nodes {
+		if !node.IsDir {
+			err := stageAndCommitFile(node.Path, node.Description)
+			if err != nil {
+				return fmt.Errorf("failed to commit file %s: %w", node.Path, err)
+			}
+		}
+	}
+	return nil
 }
 
 // ----------------- FileNode -----------------
@@ -210,18 +249,20 @@ func main() {
 		fmt.Println("Depth-First Search Traversal:")
 		printDFS(nodes)
 
-	case "stage":
-		if len(os.Args) < 3 {
-			fmt.Println("Usage: go run main.go stage <file_path>")
-			return
-		}
-		filePath := os.Args[2]
-		err := stageFileForGit(filePath)
+	case "commit-all":
+		nodes, err := loadYAML("filetree.yaml")
 		if err != nil {
-			fmt.Printf("Error staging file: %v\n", err)
+			fmt.Printf("Error loading filetree: %v\n", err)
 			return
 		}
-		fmt.Printf("File %s has successfully been staged for commit\n", filePath)
+
+		err = commitAllFiles(nodes)
+		if err != nil {
+			fmt.Printf("Error committing files: %v\n", err)
+			return
+		}
+
+		fmt.Println("All files have been committed with their descriptions")
 	default:
 		fmt.Println("Invalid command")
 	}
