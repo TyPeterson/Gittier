@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,11 +16,16 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// ----------------- FileNode -----------------
 type FileNode struct {
+	ID          string `yaml:"id"`
 	Path        string `yaml:"path"`
 	Description string `yaml:"description"`
 	IsDir       bool   `yaml:"is_dir"`
+}
+
+func generateID(path string) string {
+	hash := sha256.Sum256([]byte(path))
+	return hex.EncodeToString(hash[:])
 }
 
 func scanDirectory(root string) ([]FileNode, error) {
@@ -40,7 +47,6 @@ func scanDirectory(root string) ([]FileNode, error) {
 			return err
 		}
 
-		// Sort entries to ensure consistent ordering
 		sort.Slice(entries, func(i, j int) bool {
 			return entries[i].Name() < entries[j].Name()
 		})
@@ -52,13 +58,11 @@ func scanDirectory(root string) ([]FileNode, error) {
 				return err
 			}
 
-			// Skip .git directory
 			cleanPath := filepath.Clean(relPath)
 			if cleanPath == ".git" || (cleanPath != ".gitignore" && strings.HasPrefix(cleanPath, ".git")) {
 				continue
 			}
 
-			// Check if file is ignored by .gitignore
 			if ignore != nil && ignore.MatchesPath(relPath) {
 				continue
 			}
@@ -69,14 +73,13 @@ func scanDirectory(root string) ([]FileNode, error) {
 			}
 
 			if info.IsDir() {
-				// Recursively process subdirectories
 				if err := dfs(fullPath); err != nil {
 					return err
 				}
 			}
 
-			// Add the node after processing its children (if it's a directory)
 			node := FileNode{
+				ID:          generateID(relPath),
 				Path:        relPath,
 				Description: "No description added",
 				IsDir:       info.IsDir(),
@@ -99,16 +102,13 @@ func saveYAML(nodes []FileNode, filename string) error {
 		return err
 	}
 
-	// Write YAML data to file
 	if err := os.WriteFile(filename, data, 0644); err != nil {
 		return err
 	}
 
-	// Add filename to .gitignore if it's not already there
 	gitignorePath := ".gitignore"
 	var lines []string
 
-	// Read existing .gitignore file
 	if file, err := os.Open(gitignorePath); err == nil {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
@@ -117,7 +117,6 @@ func saveYAML(nodes []FileNode, filename string) error {
 		}
 	}
 
-	// Check if filename is already in .gitignore
 	found := false
 	for _, line := range lines {
 		if strings.TrimSpace(line) == filename {
@@ -126,7 +125,6 @@ func saveYAML(nodes []FileNode, filename string) error {
 		}
 	}
 
-	// If filename is not in .gitignore, append it
 	if !found {
 		lines = append(lines, filename)
 		content := strings.Join(lines, "\n")
@@ -153,53 +151,55 @@ func loadYAML(filename string) ([]FileNode, error) {
 	return nodes, nil
 }
 
-func printDFS(nodes []FileNode) {
-
-	for _, node := range nodes {
-		fmt.Println(node.Path, ":", node.Description)
+func syncFileTree(oldNodes []FileNode, newNodes []FileNode) []FileNode {
+	oldMap := make(map[string]FileNode)
+	for _, node := range oldNodes {
+		oldMap[node.ID] = node
 	}
+
+	var syncedNodes []FileNode
+	for _, newNode := range newNodes {
+		if oldNode, exists := oldMap[newNode.ID]; exists {
+			newNode.Description = oldNode.Description
+		}
+		syncedNodes = append(syncedNodes, newNode)
+	}
+
+	return syncedNodes
 }
 
 func commitFile(filePath string, description string) error {
-	// Read the entire file
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	// Append a temporary line to the file
 	tempLine := fmt.Sprintf("\nTemporary line added at %s\n", time.Now().Format(time.RFC3339))
 	newContent := append(content, []byte(tempLine)...)
 
-	// Write the file with the appended line
 	if err := os.WriteFile(filePath, newContent, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
-	// Git add the file
 	cmd := exec.Command("git", "add", filePath)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git add failed: %w", err)
 	}
 
-	// Git commit the temporary change
 	cmd = exec.Command("git", "commit", "-m", fmt.Sprintf("%s temp change", filepath.Base(filePath)))
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git commit (temp) failed: %w", err)
 	}
 
-	// Remove the temporary line by writing the original content back
 	if err = os.WriteFile(filePath, content, 0644); err != nil {
 		return fmt.Errorf("failed to restore original content: %w", err)
 	}
 
-	// Git add the file again
 	cmd = exec.Command("git", "add", filePath)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git add (final) failed: %w", err)
 	}
 
-	// Git commit with the description
 	cmd = exec.Command("git", "commit", "-m", description)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git commit (final) failed: %w", err)
@@ -209,7 +209,6 @@ func commitFile(filePath string, description string) error {
 }
 
 func commitDirectory(dirPath string, description string) error {
-	// Create a temporary file in the directory
 	tempFileName := fmt.Sprintf("temp_file_%d.txt", time.Now().UnixNano())
 	tempFilePath := filepath.Join(dirPath, tempFileName)
 	tempFile, err := os.Create(tempFilePath)
@@ -219,32 +218,27 @@ func commitDirectory(dirPath string, description string) error {
 	tempFile.WriteString("Temporary file for commit")
 	tempFile.Close()
 
-	// Git add the temporary file
 	cmd := exec.Command("git", "add", tempFilePath)
 	if err := cmd.Run(); err != nil {
-		os.Remove(tempFilePath) // Clean up the temp file
+		os.Remove(tempFilePath)
 		return fmt.Errorf("git add (temp file) failed: %w", err)
 	}
 
-	// Git commit the temporary file
 	cmd = exec.Command("git", "commit", "-m", fmt.Sprintf("Add temporary file in %s", dirPath))
 	if err := cmd.Run(); err != nil {
-		os.Remove(tempFilePath) // Clean up the temp file
+		os.Remove(tempFilePath)
 		return fmt.Errorf("git commit (temp file) failed: %w", err)
 	}
 
-	// Remove the temporary file
 	if err := os.Remove(tempFilePath); err != nil {
 		return fmt.Errorf("failed to remove temp file: %w", err)
 	}
 
-	// Git add the removal of the temporary file
 	cmd = exec.Command("git", "add", tempFilePath)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git add (remove temp file) failed: %w", err)
 	}
 
-	// Git commit with the directory description
 	cmd = exec.Command("git", "commit", "-m", description)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git commit (final) failed: %w", err)
@@ -300,8 +294,6 @@ func main() {
 
 		fmt.Println("Filetree initialized")
 
-	case "dfs":
-
 	case "commit":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: go run main.go commit <path>")
@@ -309,14 +301,34 @@ func main() {
 		}
 		path := os.Args[2]
 
-		nodes, err := loadYAML("filetree.yaml")
+		oldNodes, err := loadYAML("filetree.yaml")
 		if err != nil {
 			fmt.Printf("Error loading filetree: %v\n", err)
 			return
 		}
 
+		root, err := os.Getwd()
+		if err != nil {
+			fmt.Printf("Error getting current directory: %v\n", err)
+			return
+		}
+
+		newNodes, err := scanDirectory(root)
+		if err != nil {
+			fmt.Printf("Error scanning directory: %v\n", err)
+			return
+		}
+
+		syncedNodes := syncFileTree(oldNodes, newNodes)
+
+		err = saveYAML(syncedNodes, "filetree.yaml")
+		if err != nil {
+			fmt.Printf("Error saving updated filetree: %v\n", err)
+			return
+		}
+
 		var targetNode FileNode
-		for _, node := range nodes {
+		for _, node := range syncedNodes {
 			if node.Path == path {
 				targetNode = node
 				break
@@ -337,13 +349,33 @@ func main() {
 		fmt.Printf("Successfully committed changes for %s\n", path)
 
 	case "commit-all":
-		nodes, err := loadYAML("filetree.yaml")
+		oldNodes, err := loadYAML("filetree.yaml")
 		if err != nil {
 			fmt.Printf("Error loading filetree: %v\n", err)
 			return
 		}
 
-		err = commitAll(nodes)
+		root, err := os.Getwd()
+		if err != nil {
+			fmt.Printf("Error getting current directory: %v\n", err)
+			return
+		}
+
+		newNodes, err := scanDirectory(root)
+		if err != nil {
+			fmt.Printf("Error scanning directory: %v\n", err)
+			return
+		}
+
+		syncedNodes := syncFileTree(oldNodes, newNodes)
+
+		err = saveYAML(syncedNodes, "filetree.yaml")
+		if err != nil {
+			fmt.Printf("Error saving updated filetree: %v\n", err)
+			return
+		}
+
+		err = commitAll(syncedNodes)
 		if err != nil {
 			fmt.Printf("Error in commit-all: %v\n", err)
 			return
