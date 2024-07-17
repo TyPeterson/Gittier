@@ -3,159 +3,16 @@ package main
 import (
 	"fmt"
 	"os"
+
 	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	gitignore "github.com/sabhiram/go-gitignore"
 	"gopkg.in/yaml.v2"
 )
-
-var forceAdd bool
-
-func stageAndCommitFile(path string, description string) error {
-	// Special handling for .gitignore
-	if filepath.Base(path) == ".gitignore" {
-		return commitGitIgnore(path, description)
-	}
-
-	// Check if the file is ignored
-	isIgnored, err := isFileIgnored(path)
-	if err != nil {
-		return fmt.Errorf("failed to check if file is ignored: %w", err)
-	}
-
-	if isIgnored && !forceAdd {
-		fmt.Printf("Skipping ignored file: %s\n", path)
-		return nil
-	}
-
-	// Step 1: Add a temporary line
-	err = addTemporaryLine(path)
-	if err != nil {
-		return fmt.Errorf("failed to add temporary line: %w", err)
-	}
-
-	// Commit the temporary change
-	gitAddArgs := []string{"add"}
-	if forceAdd {
-		gitAddArgs = append(gitAddArgs, "-f")
-	}
-	gitAddArgs = append(gitAddArgs, path)
-
-	_, err = executeGitCommand(gitAddArgs...)
-	if err != nil {
-		return fmt.Errorf("failed to stage temporary change: %w", err)
-	}
-
-	_, err = executeGitCommand("commit", "-m", fmt.Sprintf("%s temp commit", filepath.Base(path)))
-	if err != nil {
-		return fmt.Errorf("failed to commit temporary change: %w", err)
-	}
-
-	// Step 2: Remove the temporary line
-	err = removeTemporaryLine(path)
-	if err != nil {
-		return fmt.Errorf("failed to remove temporary line: %w", err)
-	}
-
-	// Commit the removal with the actual description
-	_, err = executeGitCommand(gitAddArgs...)
-	if err != nil {
-		return fmt.Errorf("failed to stage file: %w", err)
-	}
-
-	_, err = executeGitCommand("commit", "-m", description)
-	if err != nil {
-		return fmt.Errorf("failed to commit file with description: %w", err)
-	}
-
-	return nil
-}
-
-func commitGitIgnore(path string, description string) error {
-	// For .gitignore, we'll just stage and commit directly
-	gitAddArgs := []string{"add", path}
-	_, err := executeGitCommand(gitAddArgs...)
-	if err != nil {
-		return fmt.Errorf("failed to stage .gitignore: %w", err)
-	}
-
-	_, err = executeGitCommand("commit", "-m", description)
-	if err != nil {
-		return fmt.Errorf("failed to commit .gitignore: %w", err)
-	}
-
-	return nil
-}
-
-func isFileIgnored(path string) (bool, error) {
-	cmd := exec.Command("git", "check-ignore", "-q", path)
-	err := cmd.Run()
-
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			// exit code 1 means the file is not ignored
-			if exitError.ExitCode() == 1 {
-				return false, nil
-			}
-		}
-		// For any other error, we'll assume the file is not ignored
-		return false, nil
-	}
-	// If we get here, the file is ignored
-	return true, nil
-}
-
-func addTemporaryLine(path string) error {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = f.WriteString("\n// Temporary line for commit\n")
-	return err
-}
-
-func removeTemporaryLine(path string) error {
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	lines := strings.Split(string(content), "\n")
-	if len(lines) < 2 {
-		return nil // File is too short, do nothing
-	}
-
-	// Remove the last two lines (the temporary line and the newline before it)
-	newContent := strings.Join(lines[:len(lines)-2], "\n")
-
-	return os.WriteFile(path, []byte(newContent), 0644)
-}
-
-func executeGitCommand(args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("git command failed: %s, %w", string(output), err)
-	}
-	return string(output), nil
-}
-
-func commitAllFiles(nodes []FileNode) error {
-	for _, node := range nodes {
-		if !node.IsDir {
-			err := stageAndCommitFile(node.Path, node.Description)
-			if err != nil {
-				return fmt.Errorf("failed to commit file %s: %w", node.Path, err)
-			}
-		}
-	}
-	return nil
-}
 
 // ----------------- FileNode -----------------
 type FileNode struct {
@@ -267,6 +124,70 @@ func printDFS(nodes []FileNode) {
 	}
 }
 
+func commitFile(filePath string, nodes []FileNode) error {
+	// Find the file in our nodes
+	var fileNode FileNode
+	for _, node := range nodes {
+		if node.Path == filePath {
+			fileNode = node
+			break
+		}
+	}
+	if fileNode.Path == "" {
+		return fmt.Errorf("file not found in YAML: %s", filePath)
+	}
+
+	// Add a temporary line to the file
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	tempLine := fmt.Sprintf("Temporary line added at %s\n", time.Now().Format(time.RFC3339))
+	if _, err := f.WriteString(tempLine); err != nil {
+		f.Close()
+		return err
+	}
+	f.Close()
+
+	// Git add the file
+	cmd := exec.Command("git", "add", filePath)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git add failed: %w", err)
+	}
+
+	// Git commit the temporary change
+	cmd = exec.Command("git", "commit", "-m", fmt.Sprintf("%s temp change", filepath.Base(filePath)))
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git commit (temp) failed: %w", err)
+	}
+
+	// Remove the temporary line
+	input, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(input), "\n")
+	output := strings.Join(lines[:len(lines)-2], "\n") // Remove last line and the empty line after it
+	if err = os.WriteFile(filePath, []byte(output), 0644); err != nil {
+		return err
+	}
+
+	// Git add the file again
+	cmd = exec.Command("git", "add", filePath)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git add (final) failed: %w", err)
+	}
+
+	// Git commit with the description
+	cmd = exec.Command("git", "commit", "-m", fileNode.Description)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git commit (final) failed: %w", err)
+	}
+
+	return nil
+}
+
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run main.go <command>")
@@ -298,34 +219,27 @@ func main() {
 		fmt.Println("Filetree initialized")
 
 	case "dfs":
-		nodes, err := loadYAML("filetree.yaml")
-		if err != nil {
-			fmt.Printf("Error loading filetree: %v\n", err)
-			return
-		}
 
-		fmt.Println("Depth-First Search Traversal:")
-		printDFS(nodes)
+	case "commit":
+			if len(os.Args) < 3 {
+				fmt.Println("Usage: go run main.go commit <filepath>")
+				return
+			}
+			filePath := os.Args[2]
 
-	case "commit-all":
-		forceAdd = false
-		if len(os.Args) > 2 && os.Args[2] == "--force" {
-			forceAdd = true
-		}
+			nodes, err := loadYAML("filetree.yaml")
+			if err != nil {
+				fmt.Printf("Error loading filetree: %v\n", err)
+				return
+			}
 
-		nodes, err := loadYAML("filetree.yaml")
-		if err != nil {
-			fmt.Printf("Error loading filetree: %v\n", err)
-			return
-		}
+			err = commitFile(filePath, nodes)
+			if err != nil {
+				fmt.Printf("Error committing file: %v\n", err)
+				return
+			}
 
-		err = commitAllFiles(nodes)
-		if err != nil {
-			fmt.Printf("Error committing files: %v\n", err)
-			return
-		}
-
-		fmt.Println("All files have been processed")
+			fmt.Printf("Successfully committed changes for %s\n", filePath)
 
 	default:
 		fmt.Println("Invalid command")
