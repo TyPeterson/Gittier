@@ -15,6 +15,11 @@ import (
 var forceAdd bool
 
 func stageAndCommitFile(path string, description string) error {
+	// Special handling for .gitignore
+	if filepath.Base(path) == ".gitignore" {
+		return commitGitIgnore(path, description)
+	}
+
 	// Check if the file is ignored
 	isIgnored, err := isFileIgnored(path)
 	if err != nil {
@@ -69,8 +74,26 @@ func stageAndCommitFile(path string, description string) error {
 	return nil
 }
 
+func commitGitIgnore(path string, description string) error {
+	// For .gitignore, we'll just stage and commit directly
+	gitAddArgs := []string{"add", path}
+	_, err := executeGitCommand(gitAddArgs...)
+	if err != nil {
+		return fmt.Errorf("failed to stage .gitignore: %w", err)
+	}
+
+	_, err = executeGitCommand("commit", "-m", description)
+	if err != nil {
+		return fmt.Errorf("failed to commit .gitignore: %w", err)
+	}
+
+	return nil
+}
+
 func isFileIgnored(path string) (bool, error) {
-	_, err := executeGitCommand("check-ignore", "-q", path)
+	cmd := exec.Command("git", "check-ignore", "-q", path)
+	err := cmd.Run()
+
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			// exit code 1 means the file is not ignored
@@ -78,7 +101,8 @@ func isFileIgnored(path string) (bool, error) {
 				return false, nil
 			}
 		}
-		return false, err
+		// For any other error, we'll assume the file is not ignored
+		return false, nil
 	}
 	// If we get here, the file is ignored
 	return true, nil
@@ -302,6 +326,7 @@ func main() {
 		}
 
 		fmt.Println("All files have been processed")
+
 	default:
 		fmt.Println("Invalid command")
 	}
