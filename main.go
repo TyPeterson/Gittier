@@ -221,7 +221,7 @@ func main() {
 			fmt.Printf("Error staging file: %v\n", err)
 			return
 		}
-		fmt.Printf("File %s has been staged for commit\n", filePath)
+		fmt.Printf("File %s has successfully been staged for commit\n", filePath)
 	default:
 		fmt.Println("Invalid command")
 	}
