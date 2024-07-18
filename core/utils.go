@@ -83,7 +83,7 @@ func GetDfsOrder(ft *FileTree) []*PathNode {
 		// For directories, visit children first
 		if node.IsDir {
 			children := getChildrenPaths(ft, path)
-			sort.Strings(children) // Sort children for consistent ordering
+			// sort.Strings(children) // Sort children for consistent ordering
 			for _, childPath := range children {
 				dfs(childPath)
 			}
