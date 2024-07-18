@@ -177,3 +177,5 @@ func removeTempLine(filePath string) error {
 	newContent := strings.Join(lines[:len(lines)-2], "\n")
 	return os.WriteFile(filePath, []byte(newContent), 0644)
 }
+
+// Temporary line for commit
