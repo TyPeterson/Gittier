@@ -28,5 +28,3 @@ func NewPathNode(lsTreeItem string, isDir bool) *PathNode {
 		IsDir:       isDir,
 	}
 }
-
-// Temporary line for commit
