@@ -179,3 +179,54 @@ func SyncFileTree(updatedFileTree, currentFileTree *FileTree) *FileTree {
 	}
 	return syncedFileTree
 }
+
+// ---------- CommitFolder ----------
+func CommitFolder(node *PathNode) error {
+	tempFile := filepath.Join(node.Path, ".temp_commit_file")
+
+	if err := os.WriteFile(tempFile, []byte("temporary content"), 0644); err != nil {
+		return err
+	}
+
+	if err := stageAndCommit(".", fmt.Sprintf("%s temp commit", node.Path)); err != nil {
+		return err
+	}
+
+	if err := os.Remove(tempFile); err != nil {
+		return err
+	}
+
+	return stageAndCommit(".", node.Description)
+}
+
+// ---------- CommitFile ----------
+func CommitFile(node *PathNode) error {
+	if err := appendTempLine(node.Path); err != nil {
+		return err
+	}
+
+	if err := stageAndCommit(node.Path, fmt.Sprintf("%s temp commit", node.Path)); err != nil {
+		return err
+	}
+
+	if err := removeTempLine(node.Path); err != nil {
+		return err
+	}
+
+	return stageAndCommit(node.Path, node.Description)
+}
+
+// ---------- stageAndCommit ----------
+func stageAndCommit(path, message string) error {
+	addCmd := exec.Command("git", "add", path)
+	if err := addCmd.Run(); err != nil {
+		return fmt.Errorf("failed to stage %s: %w", path, err)
+	}
+
+	commitCmd := exec.Command("git", "commit", "-m", message)
+	if err := commitCmd.Run(); err != nil {
+		return fmt.Errorf("failed to commit %s: %w", path, err)
+	}
+
+	return nil
+}
