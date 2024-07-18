@@ -85,21 +85,29 @@ func GetFileTreeFromLsTree() (*FileTree, error) {
 	for scanner.Scan() {
 		path := scanner.Text()
 
+		// Check if the path is a directory
+		isDir := false
+		fullPath := filepath.Join(".", path) // Prepend current directory
+		fileInfo, err := os.Stat(fullPath)
+		if err == nil {
+			isDir = fileInfo.IsDir()
+		} else if !os.IsNotExist(err) {
+			// If there's an error other than "not exists", log it but continue
+			fmt.Printf("Warning: Error checking %s: %v\n", fullPath, err)
+		}
+
 		// Ensure the parent directories are added
 		dirs := strings.Split(filepath.Dir(path), string(filepath.Separator))
 		currentPath := ""
 		for _, dir := range dirs {
 			currentPath = filepath.Join(currentPath, dir)
 			if currentPath != "." && !fileTree.HasNode(currentPath) {
-				node := NewPathNode(currentPath, true)
-				fileTree.AddNode(node)
+				fileTree.AddNode(NewPathNode(currentPath, true))
 			}
 		}
 
 		// Add the file or directory
-		isDir := strings.HasSuffix(path, string(filepath.Separator))
-		node := NewPathNode(path, isDir)
-		fileTree.AddNode(node)
+		fileTree.AddNode(NewPathNode(path, isDir))
 	}
 
 	if err := scanner.Err(); err != nil {
