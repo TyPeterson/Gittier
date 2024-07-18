@@ -7,6 +7,7 @@ import (
 	"github.com/TyPeterson/Gittier/core"
 )
 
+// ---------- cmdInit ----------
 func cmdInit() error {
 	// ensure the current directory is a git repo
 	if !core.IsGitRepo() {

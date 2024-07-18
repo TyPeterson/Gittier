@@ -1,15 +1,15 @@
 package core
 
 type FileTree struct {
-	CommitHash string
-	Nodes      map[string]*PathNode
+	CommitHash string               `yaml:"commit_hash"`
+	Nodes      map[string]*PathNode `yaml:"nodes"`
 }
 
 type PathNode struct {
-	ID          int
-	Path        string
-	Description string
-	IsDir       bool
+	Path        string      `yaml:"path"`
+	Description string      `yaml:"description"`
+	IsDir       bool        `yaml:"is_dir"`
+	Children    []*PathNode `yaml:"children,omitempty"`
 }
 
 func NewFileTree(commitHash string) *FileTree {
