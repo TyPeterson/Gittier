@@ -230,3 +230,5 @@ func stageAndCommit(path, message string) error {
 
 	return nil
 }
+
+// Temporary line for commit
