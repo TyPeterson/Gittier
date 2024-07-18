@@ -58,5 +58,3 @@ func Init() error {
 
 	return nil
 }
-
-// Temporary line for commit
