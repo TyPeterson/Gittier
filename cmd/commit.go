@@ -29,3 +29,5 @@ func Commit() error {
 	fmt.Println("All files and folders committed successfully")
 	return nil
 }
+
+// Temporary line for commit
