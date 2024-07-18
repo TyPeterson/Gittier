@@ -23,7 +23,8 @@ func NewFileTree(commitHash string) *FileTree {
 // ---------- NewPathNode ----------
 func NewPathNode(lsTreeItem string, isDir bool) *PathNode {
 	return &PathNode{
-		Path:  lsTreeItem,
-		IsDir: isDir,
+		Path:        lsTreeItem,
+		Description: "no description added",
+		IsDir:       isDir,
 	}
 }
