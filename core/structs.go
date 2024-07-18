@@ -12,6 +12,7 @@ type PathNode struct {
 	Children    []*PathNode `yaml:"children,omitempty"`
 }
 
+// ---------- NewFileTree ----------
 func NewFileTree(commitHash string) *FileTree {
 	return &FileTree{
 		CommitHash: commitHash,
@@ -19,6 +20,7 @@ func NewFileTree(commitHash string) *FileTree {
 	}
 }
 
+// ---------- NewPathNode ----------
 func NewPathNode(lsTreeItem string, isDir bool) *PathNode {
 	return &PathNode{
 		Path:  lsTreeItem,

@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	// "bufio"
 	"fmt"
-	// "os/exec"
-	// "strings"
 
 	"github.com/TyPeterson/Gittier/core"
 )
