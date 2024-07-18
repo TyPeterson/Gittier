@@ -36,5 +36,3 @@ func Update() error {
 	fmt.Println("File tree updated")
 	return nil
 }
-
-// Temporary line for commit
