@@ -122,3 +122,60 @@ func (ft *FileTree) HasNode(path string) bool {
 	_, exists := ft.Nodes[path]
 	return exists
 }
+
+// ---------- GetDiffOutput ----------
+func GetDiffOutput(oldCommit string) ([]string, error) {
+	cmd := exec.Command("git", "diff", "--name-status", oldCommit, "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(strings.TrimSpace(string(output)), "\n"), nil
+}
+
+// ---------- ProcessGitDiff ----------
+func ProcessGitDiff(oldFileTree *FileTree, diffOutput []string) (*FileTree, error) {
+	updatedFileTree := oldFileTree.Clone()
+
+	for _, line := range diffOutput {
+		parts := strings.Split(line, "\t")
+		if len(parts) < 2 {
+			continue
+		}
+
+		changeType := parts[0]
+		switch changeType[0] {
+		case 'A':
+			newPath := parts[1]
+			newNode := NewPathNode(newPath, false)
+			updatedFileTree.AddNode(newNode)
+		case 'D':
+			oldPath := parts[1]
+			updatedFileTree.DeleteNode(oldPath)
+		case 'R':
+			if len(parts) < 3 {
+				continue
+			}
+			oldPath, newPath := parts[1], parts[2]
+			updatedFileTree.UpdateNodePath(oldPath, newPath)
+		}
+	}
+
+	return updatedFileTree, nil
+}
+
+// ---------- SyncFileTree ----------
+func SyncFileTree(updatedFileTree, currentFileTree *FileTree) *FileTree {
+	syncedFileTree := NewFileTree(currentFileTree.CommitHash)
+
+	dfsOrder := GetDfsOrder(currentFileTree)
+	for _, node := range dfsOrder {
+		if updatedNode, exists := updatedFileTree.Nodes[node.Path]; exists {
+			syncedFileTree.AddNode(updatedNode)
+		} else {
+			newNode := NewPathNode(node.Path, node.IsDir)
+			syncedFileTree.AddNode(newNode)
+		}
+	}
+	return syncedFileTree
+}

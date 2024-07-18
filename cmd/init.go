@@ -47,14 +47,14 @@ func Init() error {
 
 	fmt.Println("filetree.yaml initialized successfully")
 
-	fmt.Println("filetree contents in dfs order:")
-	orderedNodes := core.GetDfsOrder(fileTree)
-	if len(orderedNodes) == 0 {
-		fmt.Println("empty")
-	}
-	for _, node := range orderedNodes {
-		fmt.Println(node.Path)
-	}
+	// fmt.Println("filetree contents in dfs order:")
+	// orderedNodes := core.GetDfsOrder(fileTree)
+	// if len(orderedNodes) == 0 {
+	// 	fmt.Println("empty")
+	// }
+	// for _, node := range orderedNodes {
+	// 	fmt.Println(node.Path)
+	// }
 
 	return nil
 }

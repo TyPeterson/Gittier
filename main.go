@@ -18,14 +18,14 @@ func main() {
 	switch os.Args[1] {
 	case "init":
 		err = cmd.Init()
-	// case "update":
-	//     err := cmd.Update()
-	// case "desc":
-	//     if len(os.Args) < 4 {
-	//         fmt.Println("Usage: filetree desc <path> <description>")
-	//         os.Exit(1)
-	//     }
-	//     err := cmd.Desc(os.Args[2], os.Args[3])
+	case "update":
+		err = cmd.Update()
+	case "desc":
+		if len(os.Args) < 4 {
+			fmt.Println("Usage: filetree desc <path> <description>")
+			os.Exit(1)
+		}
+		err = cmd.Desc(os.Args[2], os.Args[3], true)
 	default:
 		fmt.Printf("Unknown command: %s\n", os.Args[1])
 		core.PrintUsage()

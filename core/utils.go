@@ -83,7 +83,7 @@ func GetDfsOrder(ft *FileTree) []*PathNode {
 		// For directories, visit children first
 		if node.IsDir {
 			children := getChildrenPaths(ft, path)
-			// sort.Strings(children) // Sort children for consistent ordering
+			sort.Strings(children) // Sort children for consistent ordering
 			for _, childPath := range children {
 				dfs(childPath)
 			}
@@ -105,7 +105,7 @@ func GetDfsOrder(ft *FileTree) []*PathNode {
 	return result
 }
 
-// getChildrenPaths returns immediate children paths of a given path
+// ---------- getChildrenPaths ----------
 func getChildrenPaths(ft *FileTree, parentPath string) []string {
 	var children []string
 	for path := range ft.Nodes {
@@ -116,7 +116,7 @@ func getChildrenPaths(ft *FileTree, parentPath string) []string {
 	return children
 }
 
-// getTopLevelPaths returns the paths of all top-level nodes in the FileTree
+// ---------- getTopLevelPaths ----------
 func getTopLevelPaths(ft *FileTree) []string {
 	var topLevelPaths []string
 	for path := range ft.Nodes {
@@ -125,6 +125,20 @@ func getTopLevelPaths(ft *FileTree) []string {
 		}
 	}
 	return topLevelPaths
+}
+
+// ---------- Clone ----------
+func (ft *FileTree) Clone() *FileTree {
+	newTree := NewFileTree(ft.CommitHash)
+	for path, node := range ft.Nodes {
+		newNode := &PathNode{
+			Path:        node.Path,
+			Description: node.Description,
+			IsDir:       node.IsDir,
+		}
+		newTree.Nodes[path] = newNode
+	}
+	return newTree
 }
 
 // ---------- PrintUsage ----------
