@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	// "os/exec"
-
 	"github.com/TyPeterson/Gittier/core"
 )
 
@@ -60,19 +58,6 @@ func Init() error {
 		return err
 	}
 
-	// print current branch for debugging
-	currentBranch, err := core.GetCurrentBranch()
-	if err != nil {
-		fmt.Println("failed to get current branch")
-		return err
-	}
-	fmt.Println("current branch:", currentBranch)
-
-	// output current 'git status' for debugging
-	// cmd := exec.Command("git", "status")
-	// output := cmd.Run()
-	// fmt.Println("git status:\n", output)
-
 	// stage and commit filetree.yaml to FileTreeBranch
 	if err := core.StageAndCommit("filetree.yaml", "Initialize filetree.yaml"); err != nil {
 		fmt.Println("failed to stage and commit filetree.yaml")
@@ -80,15 +65,6 @@ func Init() error {
 	}
 
 	fmt.Println("filetree.yaml initialized successfully")
-
-	// fmt.Println("filetree contents in dfs order:")
-	// orderedNodes := core.GetDfsOrder(fileTree)
-	// if len(orderedNodes) == 0 {
-	// 	fmt.Println("empty")
-	// }
-	// for _, node := range orderedNodes {
-	// 	fmt.Println(node.Path)
-	// }
 
 	return nil
 }
