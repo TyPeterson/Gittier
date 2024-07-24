@@ -11,6 +11,57 @@ import (
 	gitignore "github.com/sabhiram/go-gitignore"
 )
 
+const FileTreeBranch = "gittier-metadata"
+
+// ---------- SwitchToFileTreeBranch ----------
+func SwitchToFileTreeBranch() (string, error) {
+	currentBranch, err := getCurrentBranch()
+	if err != nil {
+		return "", err
+	}
+
+	if !branchExist(FileTreeBranch) {
+		if err := createFileTreeBranch(); err != nil {
+			return "", err
+		}
+	}
+
+	if err := SwitchToBranch(FileTreeBranch); err != nil {
+		return "", err
+	}
+
+	return currentBranch, nil
+}
+
+// ---------- getCurrentBranch ----------
+func getCurrentBranch() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+// ---------- branchExist ----------
+func branchExist(branch string) bool {
+	cmd := exec.Command("git", "branch", "--list", branch)
+	output, err := cmd.Output()
+	return err == nil && len(output) > 0
+}
+
+// ---------- createFileTreeBranch ----------
+func createFileTreeBranch() error {
+	cmd := exec.Command("git", "checkout", "-b", FileTreeBranch, "main")
+	return cmd.Run()
+}
+
+// ---------- SwitchToBranch ----------
+func SwitchToBranch(branch string) error {
+	cmd := exec.Command("git", "checkout", branch)
+	return cmd.Run()
+}
+
 // ---------- IsGitRepo ----------
 func IsGitRepo() bool {
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
@@ -230,3 +281,6 @@ func stageAndCommit(path, message string) error {
 
 	return nil
 }
+
+// ---------- stageAndCommitBulk ----------
+// func stageAndCommitBulk(paath, message string) error
