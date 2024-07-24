@@ -20,18 +20,8 @@ func SwitchToFileTreeBranch() (string, error) {
 		return "", err
 	}
 
-	if !branchExist(FileTreeBranch) {
-		if err := createFileTreeBranch(); err != nil {
-			fmt.Println("Error creating branch")
-			return "", err
-		}
-	} else {
-		// if the branch already exists, delete it and recreate it
-		if err := deleteBranch(FileTreeBranch); err != nil {
-			fmt.Println("Error deleting branch")
-			return "", err
-		}
-
+	if !BranchExists(FileTreeBranch) {
+		fmt.Println("Branch does not exist. Creating...")
 		if err := createFileTreeBranch(); err != nil {
 			fmt.Println("Error creating branch")
 			return "", err
@@ -47,7 +37,7 @@ func SwitchToFileTreeBranch() (string, error) {
 }
 
 // ---------- deleteBranch ----------
-func deleteBranch(branch string) error {
+func DeleteBranch(branch string) error {
 	cmd := exec.Command("git", "branch", "-D", branch)
 	return cmd.Run()
 }
@@ -62,8 +52,8 @@ func GetCurrentBranch() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-// ---------- branchExist ----------
-func branchExist(branch string) bool {
+// ---------- BranchExists ----------
+func BranchExists(branch string) bool {
 	cmd := exec.Command("git", "branch", "--list", branch)
 	output, err := cmd.Output()
 	return err == nil && len(output) > 0
@@ -88,44 +78,6 @@ func IsGitRepo() bool {
 	err := cmd.Run()
 	return err == nil
 }
-
-// // ---------- AddToGitignore ----------
-// func AddToGitignore(pattern string) error {
-// 	gitignorePath := ".gitignore"
-// 	var lines []string
-
-// 	if _, err := os.Stat(gitignorePath); err == nil {
-// 		file, err := os.Open(gitignorePath)
-// 		if err != nil {
-// 			return fmt.Errorf("failed to open .gitignore: %w", err)
-// 		}
-// 		defer file.Close()
-
-// 		scanner := bufio.NewScanner(file)
-// 		for scanner.Scan() {
-// 			lines = append(lines, scanner.Text())
-// 		}
-
-// 		if err := scanner.Err(); err != nil {
-// 			return fmt.Errorf("failed to read .gitignore: %w", err)
-// 		}
-// 	}
-
-// 	ignoreFile := gitignore.CompileIgnoreLines(lines...)
-// 	if ignoreFile.MatchesPath(pattern) {
-// 		// Pattern or a superset of it already exists, no need to add
-// 		return nil
-// 	}
-
-// 	lines = append(lines, pattern)
-
-// 	content := strings.Join(lines, "\n")
-// 	if err := os.WriteFile(gitignorePath, []byte(content), 0644); err != nil {
-// 		return fmt.Errorf("failed to write to .gitignore: %w", err)
-// 	}
-
-// 	return nil
-// }
 
 // ---------- GetCurrentCommitHash ----------
 func GetCurrentCommitHash() (string, error) {
@@ -156,7 +108,7 @@ func GetFileTreeFromLsTree() (*FileTree, error) {
 	for scanner.Scan() {
 		path := scanner.Text()
 
-		// Check if the path is a directory
+		// check if the path is a directory
 		isDir := false
 		fullPath := filepath.Join(".", path) // Prepend current directory
 		fileInfo, err := os.Stat(fullPath)
@@ -167,7 +119,7 @@ func GetFileTreeFromLsTree() (*FileTree, error) {
 			fmt.Printf("Warning: Error checking %s: %v\n", fullPath, err)
 		}
 
-		// Ensure the parent directories are added
+		// ensure the parent directories are added
 		dirs := strings.Split(filepath.Dir(path), string(filepath.Separator))
 		currentPath := ""
 		for _, dir := range dirs {
@@ -177,7 +129,7 @@ func GetFileTreeFromLsTree() (*FileTree, error) {
 			}
 		}
 
-		// Add the file or directory
+		// add the file or directory
 		fileTree.AddNode(NewPathNode(path, isDir))
 	}
 
@@ -303,4 +255,4 @@ func StageAndCommit(path, message string) error {
 }
 
 // ---------- StageAndCommitBulk ----------
-// func StageAndCommitBulk(paath, message string) error
+// func StageAndCommitBulk(path, message string) error

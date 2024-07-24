@@ -15,13 +15,25 @@ func Init() error {
 		return errors.New("Not a git repository")
 	}
 
+	// if FileTreeBranch already exists, then ask user if they want to reinitialize
+	if core.BranchExists(core.FileTreeBranch) {
+		if !core.ConfirmReinitialize() {
+			return errors.New("Aborted")
+		}
+
+		// delete FileTreeBranch
+		if err := core.DeleteBranch(core.FileTreeBranch); err != nil {
+			fmt.Println("failed to delete filetree branch")
+			return err
+		}
+	}
+
 	// switch to FileTreeBranch, create if it doesn't exist, and defer switching back to original branch
 	originalBranch, err := core.SwitchToFileTreeBranch()
 	if err != nil {
 		fmt.Println("failed to switch to filetree branch")
 		return err
 	}
-
 	defer core.SwitchToBranch(originalBranch)
 
 	// check if filetree.yaml already exists
