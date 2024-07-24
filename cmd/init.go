@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os/exec"
 
 	"github.com/TyPeterson/Gittier/core"
 )
@@ -65,6 +66,11 @@ func Init() error {
 		return err
 	}
 	fmt.Println("current branch:", currentBranch)
+
+	// output current 'git status' for debugging
+	cmd := exec.Command("git", "status")
+	output := cmd.Run()
+	fmt.Println("git status:\n", output)
 
 	// stage and commit filetree.yaml to FileTreeBranch
 	if err := core.StageAndCommit("filetree.yaml", "Initialize filetree.yaml"); err != nil {
