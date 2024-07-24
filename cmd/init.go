@@ -21,6 +21,7 @@ func Init() error {
 	}
 
 	// switch to FileTreeBranch, create if it doesn't exist, and defer switching back to original branch
+	//
 	originalBranch, err := core.SwitchToFileTreeBranch()
 	if err != nil {
 		fmt.Println("failed to switch to filetree branch")
