@@ -7,34 +7,43 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	gitignore "github.com/sabhiram/go-gitignore"
+	// gitignore "github.com/sabhiram/go-gitignore"
 )
 
 const FileTreeBranch = "gittier-metadata"
 
 // ---------- SwitchToFileTreeBranch ----------
 func SwitchToFileTreeBranch() (string, error) {
-	currentBranch, err := getCurrentBranch()
+	currentBranch, err := GetCurrentBranch()
 	if err != nil {
+		fmt.Println("Error getting current branch")
 		return "", err
 	}
 
-	if !branchExist(FileTreeBranch) {
+	if !BranchExists(FileTreeBranch) {
 		if err := createFileTreeBranch(); err != nil {
+			fmt.Println("Error creating branch")
 			return "", err
 		}
 	}
 
+	err = Stash()
+	if err != nil {
+		fmt.Println("Error stashing")
+		return "", err
+	}
+
 	if err := SwitchToBranch(FileTreeBranch); err != nil {
+		_ = StashPop()
+		fmt.Println("Error switching to branch")
 		return "", err
 	}
 
 	return currentBranch, nil
 }
 
-// ---------- getCurrentBranch ----------
-func getCurrentBranch() (string, error) {
+// ---------- GetCurrentBranch ----------
+func GetCurrentBranch() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	output, err := cmd.Output()
 	if err != nil {
@@ -43,8 +52,8 @@ func getCurrentBranch() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-// ---------- branchExist ----------
-func branchExist(branch string) bool {
+// ---------- BranchExists ----------
+func BranchExists(branch string) bool {
 	cmd := exec.Command("git", "branch", "--list", branch)
 	output, err := cmd.Output()
 	return err == nil && len(output) > 0
@@ -52,6 +61,7 @@ func branchExist(branch string) bool {
 
 // ---------- createFileTreeBranch ----------
 func createFileTreeBranch() error {
+	// make sure branch is created from main, and not from the branch that called the init
 	cmd := exec.Command("git", "checkout", "-b", FileTreeBranch, "main")
 	return cmd.Run()
 }
@@ -62,6 +72,18 @@ func SwitchToBranch(branch string) error {
 	return cmd.Run()
 }
 
+// ---------- Stash ----------
+func Stash() error {
+	cmd := exec.Command("git", "stash")
+	return cmd.Run()
+}
+
+// ---------- StashPop ----------
+func StashPop() error {
+	cmd := exec.Command("git", "stash", "pop")
+	return cmd.Run()
+}
+
 // ---------- IsGitRepo ----------
 func IsGitRepo() bool {
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
@@ -69,47 +91,9 @@ func IsGitRepo() bool {
 	return err == nil
 }
 
-// ---------- AddToGitignore ----------
-func AddToGitignore(pattern string) error {
-	gitignorePath := ".gitignore"
-	var lines []string
-
-	if _, err := os.Stat(gitignorePath); err == nil {
-		file, err := os.Open(gitignorePath)
-		if err != nil {
-			return fmt.Errorf("failed to open .gitignore: %w", err)
-		}
-		defer file.Close()
-
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			lines = append(lines, scanner.Text())
-		}
-
-		if err := scanner.Err(); err != nil {
-			return fmt.Errorf("failed to read .gitignore: %w", err)
-		}
-	}
-
-	ignoreFile := gitignore.CompileIgnoreLines(lines...)
-	if ignoreFile.MatchesPath(pattern) {
-		// Pattern or a superset of it already exists, no need to add
-		return nil
-	}
-
-	lines = append(lines, pattern)
-
-	content := strings.Join(lines, "\n")
-	if err := os.WriteFile(gitignorePath, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to write to .gitignore: %w", err)
-	}
-
-	return nil
-}
-
 // ---------- GetCurrentCommitHash ----------
 func GetCurrentCommitHash() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd := exec.Command("git", "rev-parse", "main")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current commit hash: %w", err)
@@ -119,7 +103,7 @@ func GetCurrentCommitHash() (string, error) {
 
 // ---------- GetFileTreeFromLsTree ----------
 func GetFileTreeFromLsTree() (*FileTree, error) {
-	cmd := exec.Command("git", "ls-tree", "-r", "-t", "--name-only", "HEAD")
+	cmd := exec.Command("git", "ls-tree", "-r", "-t", "--name-only", "main")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ls-tree output: %w", err)
@@ -136,7 +120,7 @@ func GetFileTreeFromLsTree() (*FileTree, error) {
 	for scanner.Scan() {
 		path := scanner.Text()
 
-		// Check if the path is a directory
+		// check if the path is a directory
 		isDir := false
 		fullPath := filepath.Join(".", path) // Prepend current directory
 		fileInfo, err := os.Stat(fullPath)
@@ -147,7 +131,7 @@ func GetFileTreeFromLsTree() (*FileTree, error) {
 			fmt.Printf("Warning: Error checking %s: %v\n", fullPath, err)
 		}
 
-		// Ensure the parent directories are added
+		// ensure the parent directories are added
 		dirs := strings.Split(filepath.Dir(path), string(filepath.Separator))
 		currentPath := ""
 		for _, dir := range dirs {
@@ -157,7 +141,7 @@ func GetFileTreeFromLsTree() (*FileTree, error) {
 			}
 		}
 
-		// Add the file or directory
+		// add the file or directory
 		fileTree.AddNode(NewPathNode(path, isDir))
 	}
 
@@ -176,7 +160,7 @@ func (ft *FileTree) HasNode(path string) bool {
 
 // ---------- GetDiffOutput ----------
 func GetDiffOutput(oldCommit string) ([]string, error) {
-	cmd := exec.Command("git", "diff", "--name-status", oldCommit, "HEAD")
+	cmd := exec.Command("git", "diff", "--name-status", oldCommit, "main")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -239,7 +223,7 @@ func CommitFolder(node *PathNode) error {
 		return err
 	}
 
-	if err := stageAndCommit(".", fmt.Sprintf("%s temp commit", node.Path)); err != nil {
+	if err := StageAndCommit(".", fmt.Sprintf("%s temp commit", node.Path)); err != nil {
 		return err
 	}
 
@@ -247,7 +231,7 @@ func CommitFolder(node *PathNode) error {
 		return err
 	}
 
-	return stageAndCommit(".", node.Description)
+	return StageAndCommit(".", node.Description)
 }
 
 // ---------- CommitFile ----------
@@ -256,7 +240,7 @@ func CommitFile(node *PathNode) error {
 		return err
 	}
 
-	if err := stageAndCommit(node.Path, fmt.Sprintf("%s temp commit", node.Path)); err != nil {
+	if err := StageAndCommit(node.Path, fmt.Sprintf("%s temp commit", node.Path)); err != nil {
 		return err
 	}
 
@@ -264,11 +248,11 @@ func CommitFile(node *PathNode) error {
 		return err
 	}
 
-	return stageAndCommit(node.Path, node.Description)
+	return StageAndCommit(node.Path, node.Description)
 }
 
-// ---------- stageAndCommit ----------
-func stageAndCommit(path, message string) error {
+// ---------- StageAndCommit ----------
+func StageAndCommit(path, message string) error {
 	addCmd := exec.Command("git", "add", path)
 	if err := addCmd.Run(); err != nil {
 		return fmt.Errorf("failed to stage %s: %w", path, err)
@@ -282,5 +266,5 @@ func stageAndCommit(path, message string) error {
 	return nil
 }
 
-// ---------- stageAndCommitBulk ----------
-// func stageAndCommitBulk(paath, message string) error
+// ---------- StageAndCommitBulk ----------
+// func StageAndCommitBulk(path, message string) error

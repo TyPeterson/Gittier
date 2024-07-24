@@ -11,6 +11,15 @@ import (
 func Desc(path string, description string, verbose bool) error {
 	path = filepath.Clean(path)
 
+	// switch to FileTreeBranch, create if it doesn't exist, and defer switching back to original branch
+	originalBranch, err := core.SwitchToFileTreeBranch()
+	if err != nil {
+		fmt.Println("failed to switch to filetree branch")
+		return err
+	}
+	defer core.SwitchToBranch(originalBranch)
+	defer core.StashPop()
+
 	// read the existing FileTree into an in-memory representation
 	fileTree, err := core.ReadFileTreeFromYaml("filetree.yaml")
 	if err != nil {
