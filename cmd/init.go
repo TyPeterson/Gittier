@@ -15,17 +15,9 @@ func Init() error {
 		return errors.New("Not a git repository")
 	}
 
-	// if FileTreeBranch already exists, then ask user if they want to reinitialize
+	// if FileTreeBranch exists, return error message
 	if core.BranchExists(core.FileTreeBranch) {
-		if !core.ConfirmReinitialize() {
-			return errors.New("Aborted")
-		}
-
-		// delete FileTreeBranch
-		if err := core.DeleteBranch(core.FileTreeBranch); err != nil {
-			fmt.Println("failed to delete filetree branch")
-			return err
-		}
+		return errors.New("Project already initialized, run 'gittier update' instead")
 	}
 
 	// switch to FileTreeBranch, create if it doesn't exist, and defer switching back to original branch

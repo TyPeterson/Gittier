@@ -36,12 +36,6 @@ func SwitchToFileTreeBranch() (string, error) {
 	return currentBranch, nil
 }
 
-// ---------- deleteBranch ----------
-func DeleteBranch(branch string) error {
-	cmd := exec.Command("git", "branch", "-D", branch)
-	return cmd.Run()
-}
-
 // ---------- GetCurrentBranch ----------
 func GetCurrentBranch() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")

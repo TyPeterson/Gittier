@@ -41,29 +41,6 @@ func ConfirmOverwrite(filename string) bool {
 	}
 }
 
-// ---------- ConfirmReinitialize ----------
-func ConfirmReinitialize() bool {
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Print("This directory is already initialized with gittier. Reinitialize? (y/n): ")
-		response, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Println("Error reading input: ", err)
-			return false
-		}
-
-		response = strings.ToLower(strings.TrimSpace(response))
-		switch response {
-		case "y", "yes":
-			return true
-		case "n", "no":
-			return false
-		default:
-			fmt.Println("Invalid response. Please enter 'y' or 'n'.")
-		}
-	}
-}
-
 // ---------- GetChildNodes ----------
 func (ft *FileTree) GetChildNodes(path string) []*PathNode {
 	var children []*PathNode
