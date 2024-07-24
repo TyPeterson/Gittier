@@ -58,6 +58,14 @@ func Init() error {
 		return err
 	}
 
+	// print current branch for debugging
+	currentBranch, err := core.GetCurrentBranch()
+	if err != nil {
+		fmt.Println("failed to get current branch")
+		return err
+	}
+	fmt.Println("current branch:", currentBranch)
+
 	// stage and commit filetree.yaml to FileTreeBranch
 	if err := core.StageAndCommit("filetree.yaml", "Initialize filetree.yaml"); err != nil {
 		fmt.Println("failed to stage and commit filetree.yaml")
