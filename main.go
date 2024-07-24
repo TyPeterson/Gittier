@@ -18,8 +18,8 @@ func main() {
 	switch os.Args[1] {
 	case "init":
 		err = cmd.Init()
-	case "update":
-		err = cmd.Update()
+	case "sync":
+		err = cmd.Sync()
 	case "desc":
 		if len(os.Args) < 4 {
 			fmt.Println("Usage: filetree desc <path> <description>")

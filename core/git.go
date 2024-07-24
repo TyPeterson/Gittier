@@ -21,14 +21,20 @@ func SwitchToFileTreeBranch() (string, error) {
 	}
 
 	if !BranchExists(FileTreeBranch) {
-		fmt.Println("Branch does not exist. Creating...")
 		if err := createFileTreeBranch(); err != nil {
 			fmt.Println("Error creating branch")
 			return "", err
 		}
 	}
 
+	err = Stash()
+	if err != nil {
+		fmt.Println("Error stashing")
+		return "", err
+	}
+
 	if err := SwitchToBranch(FileTreeBranch); err != nil {
+		_ = StashPop()
 		fmt.Println("Error switching to branch")
 		return "", err
 	}
@@ -63,6 +69,18 @@ func createFileTreeBranch() error {
 // ---------- SwitchToBranch ----------
 func SwitchToBranch(branch string) error {
 	cmd := exec.Command("git", "checkout", branch)
+	return cmd.Run()
+}
+
+// ---------- Stash ----------
+func Stash() error {
+	cmd := exec.Command("git", "stash")
+	return cmd.Run()
+}
+
+// ---------- StashPop ----------
+func StashPop() error {
+	cmd := exec.Command("git", "stash", "pop")
 	return cmd.Run()
 }
 

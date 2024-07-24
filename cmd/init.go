@@ -20,14 +20,14 @@ func Init() error {
 		return errors.New("Project already initialized, run 'gittier update' instead")
 	}
 
-	// switch to FileTreeBranch, create if it doesn't exist, and defer switching back to original branch
-	//
+	// create and switch to FileTreeBranch and defer switching back to original branch
 	originalBranch, err := core.SwitchToFileTreeBranch()
 	if err != nil {
 		fmt.Println("failed to switch to filetree branch")
 		return err
 	}
 	defer core.SwitchToBranch(originalBranch)
+	defer core.StashPop()
 
 	// check if filetree.yaml already exists
 	if core.FileExists("filetree.yaml") {

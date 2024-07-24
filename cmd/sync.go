@@ -6,13 +6,15 @@ import (
 	"github.com/TyPeterson/Gittier/core"
 )
 
-func Update() error {
-	// switch to FileTreeBranch and defer back to the original branch
+func Sync() error {
+	// switch to FileTreeBranch, create if it doesn't exist, and defer switching back to original branch
 	originalBranch, err := core.SwitchToFileTreeBranch()
 	if err != nil {
-		return fmt.Errorf("failed to switch to filetree branch: %w", err)
+		fmt.Println("failed to switch to filetree branch")
+		return err
 	}
 	defer core.SwitchToBranch(originalBranch)
+	defer core.StashPop()
 
 	// read filetree.yaml into a FileTree
 	oldFileTree, err := core.ReadFileTreeFromYaml("filetree.yaml")
