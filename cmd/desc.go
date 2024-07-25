@@ -17,7 +17,8 @@ func Desc(path string, description string, verbose bool) error {
 		fmt.Println("failed to switch to filetree branch")
 		return err
 	}
-	defer core.SwitchToBranch(originalBranch)
+	defer fmt.Println("orignalBranch:", originalBranch)
+	// defer core.SwitchToBranch(originalBranch)
 	defer core.StashPop()
 
 	// read the existing FileTree into an in-memory representation
@@ -55,5 +56,9 @@ func Desc(path string, description string, verbose bool) error {
 	}
 
 	fmt.Printf("Updated description for '%s'\n", path)
+	err = core.SwitchToBranch(originalBranch)
+	if err != nil {
+		return fmt.Errorf("failed to switch back to original branch: %w", err)
+	}
 	return nil
 }
