@@ -47,6 +47,12 @@ func Sync() error {
 		return fmt.Errorf("failed to write file tree to yaml: %w", err)
 	}
 
+	// stage and commit filetree.yaml to FileTreeBranch
+	if err := core.StageAndCommit("filetree.yaml", "Initialize filetree.yaml"); err != nil {
+		fmt.Println("failed to stage and commit filetree.yaml")
+		return err
+	}
+
 	fmt.Println("File tree updated")
 	return nil
 }

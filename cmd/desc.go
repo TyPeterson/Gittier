@@ -56,6 +56,13 @@ func Desc(path string, description string, verbose bool) error {
 	}
 
 	fmt.Printf("Updated description for '%s'\n", path)
+
+	// stage and commit filetree.yaml to FileTreeBranch
+	if err := core.StageAndCommit("filetree.yaml", "Initialize filetree.yaml"); err != nil {
+		fmt.Println("failed to stage and commit filetree.yaml")
+		return err
+	}
+
 	err = core.SwitchToBranch(originalBranch)
 	if err != nil {
 		return fmt.Errorf("failed to switch back to original branch: %w", err)

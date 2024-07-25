@@ -20,17 +20,18 @@ func SwitchToFileTreeBranch() (string, error) {
 		return "", err
 	}
 
-	if !BranchExists(FileTreeBranch) {
-		if err := createFileTreeBranch(); err != nil {
-			fmt.Println("Error creating branch")
-			return "", err
-		}
-	}
-
 	err = Stash()
 	if err != nil {
 		fmt.Println("Error stashing")
 		return "", err
+	}
+
+	if !BranchExists(FileTreeBranch) {
+		if err := createFileTreeBranch(); err != nil {
+			_ = StashPop()
+			fmt.Println("Error creating branch")
+			return "", err
+		}
 	}
 
 	if err := SwitchToBranch(FileTreeBranch); err != nil {
