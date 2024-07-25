@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	// gitignore "github.com/sabhiram/go-gitignore"
 )
 
 const FileTreeBranch = "gittier-intermediate-branch"

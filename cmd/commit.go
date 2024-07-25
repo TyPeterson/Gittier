@@ -26,6 +26,8 @@ func Commit() error {
 		}
 	}
 
+	// TODO: add final commit that is shown at top of repo next to username
+
 	fmt.Println("All files and folders committed successfully")
 	return nil
 }
