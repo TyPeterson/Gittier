@@ -28,7 +28,7 @@ func Sync() error {
 		return fmt.Errorf("failed to get diff output: %w", err)
 	}
 
-	// apply changes from diffOutput to oldFileTree
+	// apply changes from Sync to oldFileTree
 	updatedFileTree, err := core.ProcessGitDiff(oldFileTree, diffOutput)
 	if err != nil {
 		return fmt.Errorf("failed to process git diff: %w", err)
@@ -45,6 +45,12 @@ func Sync() error {
 
 	if err := core.WriteFileTreeToYaml(syncedFileTree, "filetree.yaml"); err != nil {
 		return fmt.Errorf("failed to write file tree to yaml: %w", err)
+	}
+
+	// stage and commit filetree.yaml to FileTreeBranch
+	if err := core.StageAndCommit("filetree.yaml", "Initialize filetree.yaml"); err != nil {
+		fmt.Println("failed to stage and commit filetree.yaml")
+		return err
 	}
 
 	fmt.Println("File tree updated")
