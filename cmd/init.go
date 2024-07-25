@@ -9,7 +9,6 @@ import (
 
 // ---------- cmdInit ----------
 func Init() error {
-
 	// ensure the current directory is a git repo
 	if !core.IsGitRepo() {
 		return errors.New("Not a git repository")

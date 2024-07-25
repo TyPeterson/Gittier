@@ -10,7 +10,7 @@ import (
 	// gitignore "github.com/sabhiram/go-gitignore"
 )
 
-const FileTreeBranch = "gittier-metadata"
+const FileTreeBranch = "gittier-intermediate-branch"
 
 // ---------- SwitchToFileTreeBranch ----------
 func SwitchToFileTreeBranch() (string, error) {
