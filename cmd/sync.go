@@ -28,7 +28,7 @@ func Sync() error {
 		return fmt.Errorf("failed to get diff output: %w", err)
 	}
 
-	// apply changes from diffOutput to oldFileTree
+	// apply changes from Sync to oldFileTree
 	updatedFileTree, err := core.ProcessGitDiff(oldFileTree, diffOutput)
 	if err != nil {
 		return fmt.Errorf("failed to process git diff: %w", err)
