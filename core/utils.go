@@ -154,8 +154,21 @@ func removeTempLine(filePath string) error {
 	return os.WriteFile(filePath, []byte(newContent), 0644)
 }
 
-// ---------- rename ----------
-func rename(filePath string) error {
+// ---------- renameFile ----------
+func renameFile(filePath string) (string, error) {
 	// add _temp to the file name (e.g. filetree.go -> filetree_temp.go)
+	dir := filepath.Dir(filePath)
+	filename := filepath.Base(filePath)
+	ext := filepath.Ext(filename)
+	nameWithoutExt := strings.TrimSuffix(filename, ext)
 
+	newFilename := nameWithoutExt + "_temp" + ext
+	newFilePath := filepath.Join(dir, newFilename)
+
+	err := gitRename(filePath, newFilePath)
+	if err != nil {
+		return "", err
+	}
+
+	return newFilePath, nil
 }
