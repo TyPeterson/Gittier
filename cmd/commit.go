@@ -12,9 +12,9 @@ func Commit() error {
 		return fmt.Errorf("failed to read filetree.yaml: %w", err)
 	}
 
-	nodes := core.GetDfsOrder(fileTree)
+	orderedNodes := core.GetDfsOrder(fileTree)
 
-	for _, node := range nodes {
+	for _, node := range orderedNodes {
 		if node.IsDir {
 			if err := core.CommitFolder(node); err != nil {
 				return fmt.Errorf("failed to commit folder: %w", err)

@@ -28,14 +28,6 @@ func Init() error {
 	defer core.SwitchToBranch(originalBranch)
 	defer core.StashPop()
 
-	// check if filetree.yaml already exists
-	if core.FileExists("filetree.yaml") {
-		if !core.ConfirmOverwrite("filetree.yaml") {
-			fmt.Println("We should never get here")
-			return errors.New("Aborted")
-		}
-	}
-
 	// get current commit hash
 	commitHash, err := core.GetCurrentCommitHash()
 	if err != nil {

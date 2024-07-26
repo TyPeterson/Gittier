@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,29 +15,6 @@ func FileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
-}
-
-// ---------- ConfirmOverwrite ----------
-func ConfirmOverwrite(filename string) bool {
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Printf("File '%s' already exists. Overwrite? (y/n): ", filename)
-		response, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Println("Error reading input: ", err)
-			return false
-		}
-
-		response = strings.ToLower(strings.TrimSpace(response))
-		switch response {
-		case "y", "yes":
-			return true
-		case "n", "no":
-			return false
-		default:
-			fmt.Println("Invalid response. Please enter 'y' or 'n'.")
-		}
-	}
 }
 
 // ---------- GetChildNodes ----------
