@@ -153,3 +153,9 @@ func removeTempLine(filePath string) error {
 	newContent := strings.Join(lines[:len(lines)-2], "\n")
 	return os.WriteFile(filePath, []byte(newContent), 0644)
 }
+
+// ---------- rename ----------
+func rename(filePath string) error {
+	// add _temp to the file name (e.g. filetree.go -> filetree_temp.go)
+
+}
