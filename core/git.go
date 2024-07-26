@@ -290,3 +290,39 @@ func StageAndCommit(path, message string) error {
 
 // ---------- StageAndCommitBulk ----------
 // func StageAndCommitBulk(path, message string) error
+
+// ---------- mergeBranch ----------
+func mergeBranch(targetBranch, sourceBranch string) error {
+	originalBranch, err := GetCurrentBranch()
+	if err != nil {
+		return fmt.Errorf("failed to get current branch: %w", err)
+	}
+
+	if originalBranch != targetBranch {
+		if err := Stash(); err != nil {
+			return fmt.Errorf("failed to stash changes: %w", err)
+		}
+		if err := SwitchToBranch(targetBranch); err != nil {
+			return fmt.Errorf("failed to switch to branch %s: %w", targetBranch, err)
+		}
+
+		defer func() {
+			if err := SwitchToBranch(originalBranch); err != nil {
+				fmt.Printf("Warning: failed to switch back to branch %s: %v\n", originalBranch, err)
+			}
+
+			if err := StashPop(); err != nil {
+				fmt.Printf("Warning: failed to pop stash: %v\n", err)
+			}
+		}()
+	}
+
+	cmd := exec.Command("git", "merge", sourceBranch)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to merge branch %s into branch %s: %w\n%s", sourceBranch, targetBranch, err, string(output))
+	}
+
+	fmt.Printf("Merge successful. Output: %s\n", string(output))
+	return nil
+}
