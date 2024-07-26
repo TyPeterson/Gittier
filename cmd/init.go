@@ -50,8 +50,14 @@ func Init() error {
 		return err
 	}
 
+	// create .gitattributes file
+	if err := core.CreateGitAttributes(); err != nil {
+		fmt.Println("failed to create .gitattributes")
+		return err
+	}
+
 	// stage and commit filetree.yaml to FileTreeBranch
-	if err := core.StageAndCommit("filetree.yaml", "Initialize filetree.yaml"); err != nil {
+	if err := core.StageAndCommit("filetree.yaml .gitattributes", "Initialize filetree.yaml"); err != nil {
 		fmt.Println("failed to stage and commit filetree.yaml")
 		return err
 	}

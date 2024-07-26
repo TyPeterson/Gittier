@@ -11,6 +11,19 @@ import (
 
 const FileTreeBranch = "gittier-intermediate-branch"
 
+// ---------- CreateGitAttributes ----------
+func CreateGitAttributes() error {
+	content := "filetree.yaml merge=ours\n"
+	filename := ".gitattributes"
+
+	err := os.WriteFile(filename, []byte(content), 0644)
+	if err != nil {
+		return fmt.Errorf("Error creating .gitattributes file: %v", err)
+	}
+
+	return nil
+}
+
 // ---------- SwitchToFileTreeBranch ----------
 func SwitchToFileTreeBranch() (string, error) {
 	currentBranch, err := GetCurrentBranch()
