@@ -194,7 +194,7 @@ func (ft *FileTree) HasNode(path string) bool {
 
 // ---------- GetDiffOutput ----------
 func GetDiffOutput(oldCommit string) ([]string, error) {
-	cmd := exec.Command("git", "diff", "--name-status", oldCommit, "main")
+	cmd := exec.Command("git", "diff", "--name-status", oldCommit, "--", "main")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
