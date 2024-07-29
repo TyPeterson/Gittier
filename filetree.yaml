@@ -6,7 +6,7 @@ nodes:
     is_dir: false
   .gitignore:
     path: .gitignore
-    description: no description added
+    description: specifies folders/files to be ignored by git
     is_dir: false
   README.md:
     path: README.md
