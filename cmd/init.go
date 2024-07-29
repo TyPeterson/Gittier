@@ -99,5 +99,6 @@ func Init() error {
 		return err
 	}
 
+	fmt.Println("Project initialized")
 	return nil
 }
