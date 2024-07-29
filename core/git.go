@@ -50,7 +50,7 @@ func SwitchToFileTreeBranch() (string, error) {
 	}
 
 	if !BranchExists(FileTreeBranch) {
-		if err := createFileTreeBranch(); err != nil {
+		if err := CreateFileTreeBranch(); err != nil {
 			_ = StashPop()
 			fmt.Println("Error creating branch")
 			return "", err
@@ -88,7 +88,7 @@ func BranchExists(branch string) bool {
 }
 
 // ---------- createFileTreeBranch ----------
-func createFileTreeBranch() error {
+func CreateFileTreeBranch() error {
 	// make sure branch is created from main, and not from the branch that called the init
 	cmd := exec.Command("git", "checkout", "-b", FileTreeBranch, "main")
 	return cmd.Run()

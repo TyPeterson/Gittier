@@ -26,6 +26,11 @@ func Init() error {
 		return err
 	}
 
+	if err := core.CreateFileTreeBranch(); err != nil {
+		fmt.Println("failed to create filetree branch")
+		return err
+	}
+
 	// stash any changes if needed
 	needToStash, err := core.NeedToStash(currentBranch)
 	if err != nil {
