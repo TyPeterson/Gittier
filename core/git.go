@@ -24,7 +24,7 @@ func NeedToStash(branch string) (bool, error) {
 
 // ---------- CreateGitAttributes ----------
 func CreateGitAttributes() error {
-	content := "filetree.yaml merge=ours\n"
+	content := "filetree.yaml merge=ours\n.gitignore merge=ours\n"
 	filename := ".gitattributes"
 
 	err := os.WriteFile(filename, []byte(content), 0644)
