@@ -7,14 +7,38 @@ import (
 )
 
 func Sync() error {
-	// switch to FileTreeBranch, create if it doesn't exist, and defer switching back to original branch
-	originalBranch, err := core.SwitchToFileTreeBranch()
+
+	currentBranch, err := core.GetCurrentBranch()
 	if err != nil {
-		fmt.Println("failed to switch to filetree branch")
-		return err
+		return fmt.Errorf("failed to get current branch: %w", err)
 	}
-	defer core.SwitchToBranch(originalBranch)
-	defer core.StashPop()
+
+	needToStash, err := core.NeedToStash(currentBranch)
+	if err != nil {
+		return fmt.Errorf("failed to check if need to stash: %w", err)
+	}
+
+	if needToStash {
+		if err := core.Stash(); err != nil {
+			return fmt.Errorf("failed to stash: %w", err)
+		}
+
+		defer func() {
+			if err := core.StashPop(); err != nil {
+				fmt.Println("failed to pop stash")
+			}
+		}()
+	}
+
+	if err := core.SwitchToBranch(core.FileTreeBranch); err != nil {
+		return fmt.Errorf("failed to switch to filetree branch: %w", err)
+	}
+
+	defer func() {
+		if err := core.SwitchToBranch(currentBranch); err != nil {
+			fmt.Println("failed to switch to original branch")
+		}
+	}()
 
 	// read filetree.yaml into a FileTree
 	oldFileTree, err := core.ReadFileTreeFromYaml("filetree.yaml")
