@@ -57,12 +57,10 @@ func Init() error {
 	}
 
 	// stage and commit filetree.yaml to FileTreeBranch
-	if err := core.StageAndCommit("filetree.yaml .gitattributes", "Initialize filetree.yaml"); err != nil {
-		fmt.Println("failed to stage and commit filetree.yaml")
-		return err
-	}
-
-	fmt.Println("filetree.yaml initialized successfully")
+	// if err := core.StageAndCommit(".", "Initialize filetree.yaml"); err != nil {
+	// 	fmt.Println("failed to stage and commit filetree.yaml")
+	// 	return err
+	// }
 
 	return nil
 }
