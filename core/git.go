@@ -312,10 +312,12 @@ func Commit(message string) error {
 // ---------- StageAndCommit ----------
 func StageAndCommit(path, message string) error {
 	if err := Stage(path); err != nil {
+		fmt.Println("Error staging changes")
 		return err
 	}
 
 	if err := Commit(message); err != nil {
+		fmt.Println("Error committing changes")
 		return err
 	}
 
