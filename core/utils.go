@@ -172,3 +172,12 @@ func renameFile(filePath string) (string, error) {
 
 	return newFilePath, nil
 }
+
+// ---------- DeleteFile ----------
+func DeleteFile(filePath string) error {
+	err := os.Remove(filePath)
+	if err != nil {
+		return err
+	}
+	return nil
+}
