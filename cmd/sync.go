@@ -52,9 +52,13 @@ func Sync() error {
 		return fmt.Errorf("failed to get diff output: %w", err)
 	}
 	// if diffOutput is empty, no changes have been made to the file tree and we can return
-	if len(diffOutput) == 0 {
+	if len(diffOutput) == 0 || (len(diffOutput) == 1 && diffOutput[0] == "") {
 		fmt.Println("No changes to sync")
 		return nil
+	} else {
+		fmt.Println("length of diffOutput:", len(diffOutput))
+		fmt.Println("changes to sync:")
+		fmt.Println(diffOutput)
 	}
 
 	// apply changes from Sync to oldFileTree
