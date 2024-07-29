@@ -14,21 +14,22 @@ func Init() error {
 		return errors.New("Not a git repository")
 	}
 
-	// if FileTreeBranch exists, return error message
+	// ensure the project is not already initialized
 	if core.BranchExists(core.FileTreeBranch) {
 		return errors.New("Project already initialized, run 'gittier update' instead")
 	}
 
-	// create FileTreeBranch
+	// save the current branch name
 	currentBranch, err := core.GetCurrentBranch()
+
 	if err != nil {
 		fmt.Println("failed to get current branch")
 		return err
 	}
 
-	if err := core.CreateFileTreeBranch(); err != nil {
-		fmt.Println("failed to create filetree branch")
-		return err
+	// create FileTreeBranch
+	if err := core.CreateBranch(core.FileTreeBranch); err != nil {
+		return fmt.Errorf("failed to create filetree branch: %w", err)
 	}
 
 	// stash any changes if needed
@@ -66,7 +67,7 @@ func Init() error {
 	}()
 
 	// get current commit hash
-	commitHash, err := core.GetCurrentCommitHash()
+	commitHash, err := core.GetCommitHash("main")
 	if err != nil {
 		fmt.Println("failed to get current commit hash")
 		return err

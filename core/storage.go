@@ -72,6 +72,43 @@ func (ft *FileTree) UpdateNodeDescription(path, description string) error {
 	return nil
 }
 
+// ---------- HasNode ----------
+func (ft *FileTree) HasNode(path string) bool {
+	_, exists := ft.Nodes[path]
+	return exists
+}
+
+// ---------- Clone ----------
+func (ft *FileTree) Clone() *FileTree {
+	newTree := NewFileTree(ft.CommitHash)
+	for path, node := range ft.Nodes {
+		newNode := &PathNode{
+			Path:        node.Path,
+			Description: node.Description,
+			IsDir:       node.IsDir,
+		}
+		newTree.Nodes[path] = newNode
+	}
+	return newTree
+}
+
+// ---------- GetChildNodes ----------
+func (ft *FileTree) GetChildNodes(path string) []*PathNode {
+	var children []*PathNode
+	for nodePath, node := range ft.Nodes {
+		parentPath := getParentPath(nodePath)
+		if parentPath == path {
+			children = append(children, node)
+		}
+	}
+	return children
+}
+
+// ---------- IsAncestor ----------
+func (ft *FileTree) IsAncestor(potentialAncestor, path string) bool {
+	return strings.HasPrefix(path, potentialAncestor+"/")
+}
+
 // ---------- ReadFileTreeFromYaml ----------
 func ReadFileTreeFromYaml(filename string) (*FileTree, error) {
 	data, err := os.ReadFile(filename)

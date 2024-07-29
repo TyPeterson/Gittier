@@ -11,15 +11,18 @@ import (
 
 const FileTreeBranch = "gittier"
 
-// ---------- NeedToStash ----------
-func NeedToStash(branch string) (bool, error) {
-	cmd := exec.Command("git", "status", "--porcelain")
-	output, err := cmd.Output()
-	if err != nil {
-		return false, fmt.Errorf("failed to get git status: %w", err)
-	}
+// ---------- IsGitRepo ----------
+func IsGitRepo() bool {
+	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+	err := cmd.Run()
+	return err == nil
+}
 
-	return len(strings.TrimSpace(string(output))) > 0, nil
+// ---------- BranchExists ----------
+func BranchExists(branch string) bool {
+	cmd := exec.Command("git", "branch", "--list", branch)
+	output, err := cmd.Output()
+	return err == nil && len(output) > 0
 }
 
 // ---------- AddToGitignore ----------
@@ -72,7 +75,6 @@ func CreateGitAttributes() error {
 
 // ---------- CreateGitignore ----------
 func CreateGitignore() error {
-	// create empty .gitignore file
 	filename := ".gitignore"
 	err := os.WriteFile(filename, []byte(""), 0644)
 	if err != nil {
@@ -127,13 +129,6 @@ func GetCurrentBranch() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-// ---------- BranchExists ----------
-func BranchExists(branch string) bool {
-	cmd := exec.Command("git", "branch", "--list", branch)
-	output, err := cmd.Output()
-	return err == nil && len(output) > 0
-}
-
 // ---------- CreateBranch ----------
 func CreateBranch(branch string) error {
 	cmd := exec.Command("git", "branch", branch, "main")
@@ -164,16 +159,20 @@ func StashPop() error {
 	return cmd.Run()
 }
 
-// ---------- IsGitRepo ----------
-func IsGitRepo() bool {
-	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
-	err := cmd.Run()
-	return err == nil
+// ---------- NeedToStash ----------
+func NeedToStash(branch string) (bool, error) {
+	cmd := exec.Command("git", "status", "--porcelain")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to get git status: %w", err)
+	}
+
+	return len(strings.TrimSpace(string(output))) > 0, nil
 }
 
-// ---------- GetCurrentCommitHash ----------
-func GetCurrentCommitHash() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "main")
+// ---------- GetCommitHash ----------
+func GetCommitHash(branch string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", branch)
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current commit hash: %w", err)
@@ -189,7 +188,7 @@ func GetFileTreeFromLsTree() (*FileTree, error) {
 		return nil, fmt.Errorf("failed to get ls-tree output: %w", err)
 	}
 
-	commitHash, err := GetCurrentCommitHash()
+	commitHash, err := GetCommitHash("main")
 	if err != nil {
 		return nil, err
 	}
@@ -230,12 +229,6 @@ func GetFileTreeFromLsTree() (*FileTree, error) {
 	}
 
 	return fileTree, nil
-}
-
-// ---------- HasNode ----------
-func (ft *FileTree) HasNode(path string) bool {
-	_, exists := ft.Nodes[path]
-	return exists
 }
 
 // ---------- GetDiffOutput ----------
