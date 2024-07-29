@@ -174,10 +174,6 @@ func renameFile(filePath string) (string, error) {
 }
 
 // ---------- DeleteFile ----------
-<<<<<<< Updated upstream
-func DeleteFile(filePath string) error {
-	err := os.Remove(filePath)
-=======
 func DeleteFile(filename string) error {
 
 	if !FileExists(filename) {
@@ -185,7 +181,6 @@ func DeleteFile(filename string) error {
 	}
 
 	err := os.Remove(filename)
->>>>>>> Stashed changes
 	if err != nil {
 		return err
 	}
