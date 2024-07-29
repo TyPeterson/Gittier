@@ -10,13 +10,13 @@ func Clean() error {
 		return err
 	}
 
-	// delete the filetree.yaml file
-	if err := core.DeleteFile("filetree.yaml"); err != nil {
+	// delete the .gitattributes file
+	if err := core.DeleteFile(".gitattributes"); err != nil {
 		return err
 	}
 
-	// delete the .gitattributes file
-	if err := core.DeleteFile(".gitattributes"); err != nil {
+	// delete the filetree.yaml file
+	if err := core.DeleteFile("filetree.yaml"); err != nil {
 		return err
 	}
 
