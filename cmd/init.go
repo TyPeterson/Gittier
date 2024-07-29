@@ -87,6 +87,12 @@ func Init() error {
 		return err
 	}
 
+	// write filetree.yaml to main branch's gitignore
+	if err := core.AddToGitignore("filetree.yaml"); err != nil {
+		fmt.Println("failed to add filetree.yaml to .gitignore")
+		return err
+	}
+
 	// create .gitattributes file
 	if err := core.CreateGitAttributes(); err != nil {
 		fmt.Println("failed to create .gitattributes")
