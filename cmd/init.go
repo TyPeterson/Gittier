@@ -29,26 +29,26 @@ func Init() error {
 	defer core.StashPop()
 
 	// get current commit hash
-	commitHash, err := core.GetCurrentCommitHash()
-	if err != nil {
-		fmt.Println("failed to get current commit hash")
-		return err
-	}
+	// commitHash, err := core.GetCurrentCommitHash()
+	// if err != nil {
+	// 	fmt.Println("failed to get current commit hash")
+	// 	return err
+	// }
 
 	// get FileTree from ls-tree
-	fileTree, err := core.GetFileTreeFromLsTree()
-	if err != nil {
-		fmt.Println("failed to get file tree from ls-tree")
-		return err
-	}
+	// fileTree, err := core.GetFileTreeFromLsTree()
+	// if err != nil {
+	// 	fmt.Println("failed to get file tree from ls-tree")
+	// 	return err
+	// }
 
-	fileTree.CommitHash = commitHash
+	// fileTree.CommitHash = commitHash
 
 	// write FileTree to filetree.yaml
-	if err := core.WriteFileTreeToYaml(fileTree, "filetree.yaml"); err != nil {
-		fmt.Println("failed to write filetree.yaml")
-		return err
-	}
+	// if err := core.WriteFileTreeToYaml(fileTree, "filetree.yaml"); err != nil {
+	// 	fmt.Println("failed to write filetree.yaml")
+	// 	return err
+	// }
 
 	// create .gitattributes file
 	// if err := core.CreateGitAttributes(); err != nil {
