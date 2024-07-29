@@ -51,10 +51,10 @@ func Init() error {
 	}
 
 	// create .gitattributes file
-	if err := core.CreateGitAttributes(); err != nil {
-		fmt.Println("failed to create .gitattributes")
-		return err
-	}
+	// if err := core.CreateGitAttributes(); err != nil {
+	// 	fmt.Println("failed to create .gitattributes")
+	// 	return err
+	// }
 
 	// stage and commit filetree.yaml to FileTreeBranch
 	// if err := core.StageAndCommit(".", "Initialize filetree.yaml"); err != nil {
