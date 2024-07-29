@@ -22,6 +22,41 @@ func NeedToStash(branch string) (bool, error) {
 	return len(strings.TrimSpace(string(output))) > 0, nil
 }
 
+// ---------- AddToGitignore ----------
+func AddToGitignore(line string) error {
+
+	originalBranch, err := GetCurrentBranch()
+	if err != nil {
+		return fmt.Errorf("failed to get current branch: %w", err)
+	}
+
+	if err := SwitchToBranch("main"); err != nil {
+		return fmt.Errorf("failed to switch to main branch: %w", err)
+	}
+
+	fileExists := FileExists(".gitignore")
+	if !fileExists {
+		if err := CreateGitignore(); err != nil {
+			return fmt.Errorf("failed to create .gitignore: %w", err)
+		}
+
+	}
+
+	if err := AddLineToFile(".gitignore", line); err != nil {
+		return fmt.Errorf("failed to add line to .gitignore: %w", err)
+	}
+
+	if err := StageAndCommit(".gitignore", "adding filetree to gitignore"); err != nil {
+		return fmt.Errorf("failed to stage and commit .gitignore: %w", err)
+	}
+
+	if err := SwitchToBranch(originalBranch); err != nil {
+		return fmt.Errorf("failed to switch to original branch: %w", err)
+	}
+
+	return nil
+}
+
 // ---------- CreateGitAttributes ----------
 func CreateGitAttributes() error {
 	content := "filetree.yaml merge=ours\n.gitignore merge=ours\n"
@@ -30,6 +65,18 @@ func CreateGitAttributes() error {
 	err := os.WriteFile(filename, []byte(content), 0644)
 	if err != nil {
 		return fmt.Errorf("Error creating .gitattributes file: %v", err)
+	}
+
+	return nil
+}
+
+// ---------- CreateGitignore ----------
+func CreateGitignore() error {
+	// create empty .gitignore file
+	filename := ".gitignore"
+	err := os.WriteFile(filename, []byte(""), 0644)
+	if err != nil {
+		return fmt.Errorf("Error creating .gitignore file: %v", err)
 	}
 
 	return nil

@@ -126,32 +126,20 @@ func PrintUsage() {
 	fmt.Println("  desc <path> <description>  Add or update description for a path")
 }
 
-// ---------- appendTempLine ----------
-func appendTempLine(filePath string) error {
-	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = f.WriteString("\n// Temporary line for commit\n")
-	return err
-}
-
-// ---------- removeTempLine ----------
-func removeTempLine(filePath string) error {
-	content, err := os.ReadFile(filePath)
+// ---------- AddLineToFile ----------
+func AddLineToFile(filename, line string) error {
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 
-	lines := strings.Split(string(content), "\n")
-	if len(lines) < 2 {
-		return nil
+	defer file.Close()
+	_, err = file.WriteString(line + "\n")
+	if err != nil {
+		return err
 	}
 
-	newContent := strings.Join(lines[:len(lines)-2], "\n")
-	return os.WriteFile(filePath, []byte(newContent), 0644)
+	return nil
 }
 
 // ---------- renameFile ----------
