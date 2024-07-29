@@ -48,6 +48,8 @@ func Sync() error {
 
 	// get diff between commit hash of filetree.yaml and main
 	diffOutput, err := core.GetDiffOutput(oldFileTree.CommitHash)
+	// output diffOutput to console for debugging reasons
+	fmt.Println(diffOutput)
 	if err != nil {
 		return fmt.Errorf("failed to get diff output: %w", err)
 	}
