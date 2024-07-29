@@ -14,7 +14,7 @@ nodes:
     is_dir: true
   cmd/clean.go:
     path: cmd/clean.go
-    description: no description added
+    description: for cleaning up anything created by init
     is_dir: false
   cmd/commit.go:
     path: cmd/commit.go
