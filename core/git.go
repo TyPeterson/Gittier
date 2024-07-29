@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const FileTreeBranch = "gittier-intermediate-branch"
+const FileTreeBranch = "gittier"
 
 // ---------- CreateGitAttributes ----------
 func CreateGitAttributes() error {
