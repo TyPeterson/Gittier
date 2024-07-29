@@ -47,7 +47,11 @@ func SwitchToFileTreeBranch() (string, error) {
 	}
 
 	if err := SwitchToBranch(FileTreeBranch); err != nil {
-		_ = StashPop()
+		err1 := StashPop()
+		if err1 != nil {
+			fmt.Println("Error popping stash")
+			return "", err1
+		}
 		fmt.Println("Error switching to branch")
 		return "", err
 	}
