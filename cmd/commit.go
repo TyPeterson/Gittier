@@ -66,7 +66,25 @@ func Commit() error {
 		}
 	}
 
-	// TODO: add final commit that is shown at top of repo next to username
+	// add the top level commit message for the entire project
+	filename := ".temp_file"
+	if err := core.CreateFile(filename); err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+
+	if err := core.StageAndCommit(filename, "temp file creation for root level"); err != nil {
+		return fmt.Errorf("failed to commit project root: %w", err)
+	}
+
+	if err := core.DeleteFile(filename); err != nil {
+		return fmt.Errorf("failed to remove temp file: %w", err)
+	}
+
+	if err := core.StageAndCommit(filename, "project root"); err != nil {
+		return fmt.Errorf("failed to commit project root: %w", err)
+	}
+
+	// create a new temp branch that uses FileTreeBranch as its base
 
 	fmt.Println("All files and folders committed successfully")
 	return nil

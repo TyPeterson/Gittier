@@ -161,6 +161,21 @@ func renameFile(filePath string) (string, error) {
 	return newFilePath, nil
 }
 
+// ---------- CreateFile ----------
+func CreateFile(filename string) error {
+	if FileExists(filename) {
+		return fmt.Errorf("file already exists: %s", filename)
+	}
+
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("error creating file: %w", err)
+	}
+
+	file.Close()
+	return nil
+}
+
 // ---------- DeleteFile ----------
 func DeleteFile(filename string) error {
 
