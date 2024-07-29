@@ -136,7 +136,7 @@ func BranchExists(branch string) bool {
 
 // ---------- CreateBranch ----------
 func CreateBranch(branch string) error {
-	cmd := exec.Command("git", "checkout", "-b", branch)
+	cmd := exec.Command("git", "branch", branch, "main")
 	return cmd.Run()
 }
 
@@ -148,7 +148,7 @@ func DeleteBranch(branch string) error {
 
 // ---------- SwitchToBranch ----------
 func SwitchToBranch(branch string) error {
-	cmd := exec.Command("git", "checkout", branch)
+	cmd := exec.Command("git", "switch", branch)
 	return cmd.Run()
 }
 
