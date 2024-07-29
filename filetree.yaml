@@ -1,4 +1,4 @@
-commit_hash: 52d57da37a54047c1ec21d0c9e32d4e5b09a1e51
+commit_hash: 41decc96e09081c6e3630668f4550cc07199e3c5
 nodes:
   .gitignore:
     path: .gitignore
@@ -38,6 +38,10 @@ nodes:
     is_dir: true
   cmd/nestedFolder/deepestNest/deepestFile.txt:
     path: cmd/nestedFolder/deepestNest/deepestFile.txt
+    description: no description added
+    is_dir: false
+  cmd/nestedFolder/deepestNest/deepestFile2.txt:
+    path: cmd/nestedFolder/deepestNest/deepestFile2.txt
     description: no description added
     is_dir: false
   cmd/nestedFolder/nestedInCmd1.txt:
