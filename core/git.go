@@ -11,6 +11,17 @@ import (
 
 const FileTreeBranch = "gittier"
 
+// ---------- NeedToStash ----------
+func NeedToStash(branch string) (bool, error) {
+	cmd := exec.Command("git", "status", "--porcelain")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to get git status: %w", err)
+	}
+
+	return len(strings.TrimSpace(string(output))) > 0, nil
+}
+
 // ---------- CreateGitAttributes ----------
 func CreateGitAttributes() error {
 	content := "filetree.yaml merge=ours\n"
