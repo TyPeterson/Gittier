@@ -56,11 +56,11 @@ func Commit() error {
 
 	for _, node := range orderedNodes {
 		if node.IsDir {
-			if err := core.CommitFolder(node); err != nil {
+			if err := core.CommitFolderDescription(node); err != nil {
 				return fmt.Errorf("failed to commit folder: %w", err)
 			}
 		} else {
-			if err := core.CommitFile(node); err != nil {
+			if err := core.CommitFileDescription(node); err != nil {
 				return fmt.Errorf("failed to commit file: %w", err)
 			}
 		}
