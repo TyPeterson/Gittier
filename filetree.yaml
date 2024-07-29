@@ -10,7 +10,7 @@ nodes:
     is_dir: false
   cmd:
     path: cmd
-    description: no description added
+    description: contains all the commands
     is_dir: true
   cmd/clean.go:
     path: cmd/clean.go
