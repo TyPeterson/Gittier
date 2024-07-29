@@ -28,6 +28,8 @@ func main() {
 		err = cmd.Desc(os.Args[2], os.Args[3], true)
 	case "commit":
 		err = cmd.Commit()
+	case "clean":
+		err = cmd.Clean()
 	default:
 		fmt.Printf("Unknown command: %s\n", os.Args[1])
 		core.PrintUsage()

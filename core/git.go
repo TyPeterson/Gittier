@@ -79,6 +79,12 @@ func createFileTreeBranch() error {
 	return cmd.Run()
 }
 
+// ---------- DeleteBranch ----------
+func DeleteBranch(branch string) error {
+	cmd := exec.Command("git", "branch", "-D", branch)
+	return cmd.Run()
+}
+
 // ---------- SwitchToBranch ----------
 func SwitchToBranch(branch string) error {
 	cmd := exec.Command("git", "checkout", branch)
