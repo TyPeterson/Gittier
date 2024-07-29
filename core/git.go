@@ -134,10 +134,16 @@ func BranchExists(branch string) bool {
 	return err == nil && len(output) > 0
 }
 
-// ---------- createFileTreeBranch ----------
+// ---------- CreateFileTreeBranch ----------
 func CreateFileTreeBranch() error {
 	// make sure branch is created from main, and not from the branch that called the init
 	cmd := exec.Command("git", "checkout", "-b", FileTreeBranch, "main")
+	return cmd.Run()
+}
+
+// ---------- CreateTempBranch ----------
+func CreateTempBranch() error {
+	cmd := exec.Command("git", "checkout", "-b", "main-temp", "main")
 	return cmd.Run()
 }
 
