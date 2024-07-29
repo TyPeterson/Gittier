@@ -25,9 +25,20 @@ func Init() error {
 		fmt.Println("failed to switch to filetree branch")
 		return err
 	}
-	defer core.SwitchToBranch(originalBranch)
-	defer core.StashPop()
+	// defer core.SwitchToBranch(originalBranch)
+	// defer core.StashPop()
 
+	// switch back to original branch
+	if err := core.SwitchToBranch(originalBranch); err != nil {
+		fmt.Println("failed to switch back to original branch")
+		return err
+	}
+
+	// stash pop
+	if err := core.StashPop(); err != nil {
+		fmt.Println("failed to stash pop")
+		return err
+	}
 	// get current commit hash
 	// commitHash, err := core.GetCurrentCommitHash()
 	// if err != nil {
