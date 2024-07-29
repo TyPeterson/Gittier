@@ -194,7 +194,7 @@ func (ft *FileTree) HasNode(path string) bool {
 
 // ---------- GetDiffOutput ----------
 func GetDiffOutput(oldCommit string) ([]string, error) {
-	cmd := exec.Command("git", "diff", "--name-status", oldCommit, "--", "main")
+	cmd := exec.Command("git", "diff", "--name-status", oldCommit, "refs/heads/main")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -312,12 +312,10 @@ func Commit(message string) error {
 // ---------- StageAndCommit ----------
 func StageAndCommit(path, message string) error {
 	if err := Stage(path); err != nil {
-		fmt.Println("Error staging changes")
 		return err
 	}
 
 	if err := Commit(message); err != nil {
-		fmt.Println("Error committing changes")
 		return err
 	}
 
