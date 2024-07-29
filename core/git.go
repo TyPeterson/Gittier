@@ -309,7 +309,7 @@ func gitRename(oldPath, newPath string) error {
 }
 
 // ---------- CommitFolder ----------
-func CommitFolder(node *PathNode) error {
+func CommitFolderDescription(node *PathNode) error {
 	tempFile := filepath.Join(node.Path, ".temp_commit_file")
 
 	if err := os.WriteFile(tempFile, []byte("temporary content"), 0644); err != nil {
@@ -328,7 +328,7 @@ func CommitFolder(node *PathNode) error {
 }
 
 // ---------- CommitFile ----------
-func CommitFile(node *PathNode) error {
+func CommitFileDescription(node *PathNode) error {
 
 	tempFileName, err := renameFile(node.Path)
 	if err != nil {
