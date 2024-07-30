@@ -65,7 +65,7 @@ func Sync() error {
 	}
 
 	// get current structure of main branch FileTree
-	currentFileTree, err := core.GetFileTreeFromLsTree()
+	currentFileTree, err := core.GetFileTreeFromBranch("main")
 	if err != nil {
 		return fmt.Errorf("failed to get file tree from ls-tree: %w", err)
 	}
