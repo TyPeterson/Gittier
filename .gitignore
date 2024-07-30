@@ -2,4 +2,4 @@
 main
 #fold1/
 oldmain.go
-*.sh
+hello.sh
