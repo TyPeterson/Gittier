@@ -66,7 +66,7 @@ func Init() error {
 		}
 	}()
 
-	// get FileTree from ls-tree
+	// get FileTree from main branch's ls-tree
 	fileTree, err := core.GetFileTreeFromBranch("main")
 	if err != nil {
 		fmt.Println("failed to get file tree from ls-tree")
@@ -79,12 +79,12 @@ func Init() error {
 		return err
 	}
 
-	// stage and commit filetree.yaml and .gitattributes to FileTreeBranch
-	if err := core.StageAndCommit(".", "Initialize filetree.yaml and .gitattributes"); err != nil {
+	// stage and commit filetree.yaml
+	if err := core.StageAndCommit("filetree.yaml", "Initialize filetree.yaml"); err != nil {
 		fmt.Println("failed to stage and commit filetree.yaml and .gitattributes")
 		return err
 	}
 
-	fmt.Println("Project initialized")
+	fmt.Println("Gittier project initialized")
 	return nil
 }
