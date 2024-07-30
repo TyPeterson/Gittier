@@ -85,6 +85,6 @@ func Init() error {
 		return err
 	}
 
-	fmt.Println("Project initialized")
+	fmt.Println("Gittier project initialized")
 	return nil
 }
