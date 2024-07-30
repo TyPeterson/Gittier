@@ -66,37 +66,16 @@ func Init() error {
 		}
 	}()
 
-	// get current commit hash
-	commitHash, err := core.GetCommitHash("main")
-	if err != nil {
-		fmt.Println("failed to get current commit hash")
-		return err
-	}
-
 	// get FileTree from ls-tree
-	fileTree, err := core.GetFileTreeFromLsTree()
+	fileTree, err := core.GetFileTreeFromBranch("main")
 	if err != nil {
 		fmt.Println("failed to get file tree from ls-tree")
 		return err
 	}
 
-	fileTree.CommitHash = commitHash
-
 	// write FileTree to filetree.yaml
 	if err := core.WriteFileTreeToYaml(fileTree, "filetree.yaml"); err != nil {
 		fmt.Println("failed to write filetree.yaml")
-		return err
-	}
-
-	// write filetree.yaml to main branch's gitignore
-	if err := core.AddToGitignore("filetree.yaml"); err != nil {
-		fmt.Println("failed to add filetree.yaml to .gitignore")
-		return err
-	}
-
-	// create .gitattributes file
-	if err := core.CreateGitAttributes(); err != nil {
-		fmt.Println("failed to create .gitattributes")
 		return err
 	}
 
